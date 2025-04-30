@@ -1,0 +1,8 @@
+*.db
+*.pkl
+*.pyc
+*.pyo
+__pycache__
+.DS_Store
+.vscode
+node_modules/
