@@ -96,6 +96,14 @@ class RoomObject {
   conduct() {
     this.socket.emit('conduct', {})
   }
+
+  next_step() {
+    this.socket.emit('next_step', {})
+  }
+
+  interact(message) {
+    this.socket.emit('interact', message)
+  }
 }
 
 export default RoomObject

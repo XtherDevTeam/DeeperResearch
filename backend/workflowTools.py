@@ -18,10 +18,10 @@ def WebsiteReader(url: str) -> dict[str, list[dict] | str]:
         dict[str, list[dict] | str]: A dictionary containing the website content and links as a list of dictionaries.
         For key `content`, the value is the text content of the website. For key `links`, the value is a list of dictionaries
     """
-
-    content = requests.get(url).content
+    userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:137.0) Gecko/20100101 Firefox/137.0'
+    content = requests.get(url, headers={'User-Agent': userAgent}).content
     soup = bs4.BeautifulSoup(content, 'html.parser')
-    text = soup.get_text()
+    all_text = soup.get_text()
 
     gathered_links = []
     for link in soup.find_all('a'):
@@ -45,7 +45,7 @@ def WebsiteReader(url: str) -> dict[str, list[dict] | str]:
                 pass
 
     return {
-        'content': text,
+        'content': all_text,
         'links': gathered_links,
     }
 
@@ -65,8 +65,8 @@ def SearchEngine(query: str, page: int = 1) -> list[dict[str, str]]:
     """
 
     # Set up the Google Custom Search API
-    api_key = dataProvider.DataProvider.getConfig("google_search_engine_key")
-    cse_id = dataProvider.DataProvider.getConfig("google_search_engine_cx_id")
+    api_key = dataProvider.DataProvider.getConfig()["google_search_engine_key"]
+    cse_id = dataProvider.DataProvider.getConfig()["google_search_engine_cx_id"]
     service = googleapiclient.discovery.build(
         'customsearch', 'v1', developerKey=api_key)
 

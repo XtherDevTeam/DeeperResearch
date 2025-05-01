@@ -17,6 +17,7 @@ function More() {
   const [googleSearchEngineKey, setGoogleSearchEngineKey] = React.useState('')
   const [googleSearchEngineCxId, setGoogleSearchEngineCxId] = React.useState('')
   const [googleApiKey, setGoogleApiKey] = React.useState('')
+  const [thinkingTokenBudget, setThinkingTokenBudget] = React.useState(0)
 
   function handleServiceInfoRefresh() {
     Api.getServiceInfo(serverUrl).then(r => {
@@ -46,6 +47,11 @@ function More() {
         Api.getConfig('google_api_key').then(r => {
           if (r.status) {
             setGoogleApiKey(r.data)
+          }
+        })
+        Api.getConfig('thinking_token_budget').then(r => {
+          if (r.status) {
+            setThinkingTokenBudget(r.data)
           }
         })
       } else {
@@ -102,7 +108,7 @@ function More() {
         <ContentEditDialog title="Secret" description={'Edit Secret Key'} defaultValue={secret} onOk={(value) => {
           setSecret(value)
         }} icon={<Mui.Icons.VpnKey />} secret={true} />
-        <ContentEditDialog title="DeepResearch Model" description={'Edit DeepResearch Model'} defaultValue={deepResearchModel} onOk={(value) => {
+        <ContentEditDialog title="DeepResearch Model" description={'Model used for generating research content'} defaultValue={deepResearchModel} onOk={(value) => {
           setDeepResearchModel(value)
           Api.setConfig('deep_research_model', value).then(r => {
             console.log(r)
@@ -119,7 +125,7 @@ function More() {
             }
           })
         }} icon={<Mui.Icons.ModelTraining />} />
-        <ContentEditDialog title="Google Search Engine Key" description={'Edit Google Search Engine Key'} defaultValue={googleSearchEngineKey} onOk={(value) => {
+        <ContentEditDialog title="Google Search Engine Key" description={'Google API Key for Google custom search engine'} defaultValue={googleSearchEngineKey} onOk={(value) => {
           setGoogleSearchEngineKey(value)
           Api.setConfig('google_search_engine_key', value).then(r => {
             console.log(r)
@@ -153,7 +159,7 @@ function More() {
             }
           })
         }} icon={<Mui.Icons.Search />} secret={true} />
-        <ContentEditDialog title="Google API Key" description={'Edit Google API Key'} defaultValue={googleApiKey} onOk={(value) => {
+        <ContentEditDialog title="Google API Key" description={'Your Google API Key for Gemini models'} defaultValue={googleApiKey} onOk={(value) => {
           setGoogleApiKey(value)
           Api.setConfig('google_api_key', value).then(r => {
             console.log(r)
@@ -170,6 +176,23 @@ function More() {
             }
           })
         }} icon={<Mui.Icons.Cloud />} secret={true} />
+        <ContentEditDialog title="Thinking Token Budget" description={'Amount of tokens spent on thinking in each step of the research process'} defaultValue={thinkingTokenBudget} onOk={(value) => {
+          setThinkingTokenBudget(value)
+          Api.setConfig('thinking_token_budget', parseInt(value)).then(r => {
+            console.log(r)
+            if (r.status) {
+              setMessageContent(`Updated Thinking Token Budget suceessfully`)
+              setMessageType('success')
+              setMessageOpen(true)
+              setMessageTitle('Success')
+            } else {
+              setMessageTitle('Error')
+              setMessageContent(r.data.message)
+              setMessageType('error')
+              setMessageOpen(true)
+            }
+          })
+        }} icon={<Mui.Icons.Token />} secret={false} />
         <Mui.ListItemButton onClick={() => {
           setShowAboutPage(true)
         }}>

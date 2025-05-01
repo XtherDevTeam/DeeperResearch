@@ -4,7 +4,7 @@ import Room from '../components/Room';
 import Message from '../components/Message';
 import Api from '../Api';
 
-function CreateResearch() {
+function CreateResearch({ setTitle }) {
   const [researchToken, setResearchToken] = React.useState(null);
   const [inputEvent, setInputEvent] = React.useState(null);
   const [inputContent, setInputContent] = React.useState("");
@@ -67,7 +67,10 @@ function CreateResearch() {
       </Mui.Box>
 
     </Mui.Box>}
-    {researchToken && <Room token={researchToken} onTitle={(title) => { }} sx={{ height: '100%', overflowY: 'scroll', width: '100%' }} inputEvent={inputEvent} connect={connect} onErr={(err) => {
+    {researchToken && <Room token={researchToken} onTitle={(title) => {
+      console.log(title);
+      setTitle(title);
+    }} sx={{ height: '100%', overflowY: 'scroll', width: '100%' }} inputEvent={inputEvent} connect={connect} onErr={(err) => {
       console.log(err);
       setMessageTitle('Error');
       setMessageContent(err.message);

@@ -71,7 +71,7 @@ class DatabaseObject:
     def close(self):
         """Close the database connection."""
         self.db.close()
-        
+
 
 class _DataProvider:
     def __init__(self, db_path: str = './blob/database.db'):
@@ -79,7 +79,7 @@ class _DataProvider:
         if not self.checkIfInitialized():
             logger.Logger.log('Database not initialized')
         pass
-    
+
     def checkIfInitialized(self):
         """
         Check if the database is initialized.
@@ -95,20 +95,21 @@ class _DataProvider:
                 self.db.runScript(file.read())
                 self.db.db.commit()
 
-
     def initialize(self):
         """
         Initialize the database.
         """
         if os.environ.get("GOOGLE_API_KEY"):
-            self.db.query('insert into config (google_api_key) values (?)', (os.environ.get("GOOGLE_API_KEY"),))
+            self.db.query('insert into config (google_api_key) values (?)',
+                          (os.environ.get("GOOGLE_API_KEY"),))
             self.db.db.commit()
         else:
-            logger.Logger.log('No GOOGLE_API_KEY found in environment variables, using null value')
-            self.db.query('insert into config (google_api_key) values (?)', ("",))
+            logger.Logger.log(
+                'No GOOGLE_API_KEY found in environment variables, using null value')
+            self.db.query(
+                'insert into config (google_api_key) values (?)', ("",))
             self.db.db.commit()
-    
-    
+
     def getConfig(self) -> dict[str, str]:
         """
         Get the configuration.
@@ -117,8 +118,7 @@ class _DataProvider:
             dict[str, str]: Configuration.
         """
         return self.db.query("select * from config")[0]
-    
-    
+
     def setConfig(self, config: dict[str, str]):
         """
         Set the configuration.
@@ -126,10 +126,10 @@ class _DataProvider:
         Args:
             config (dict[str, str]): Configuration.
         """
-        self.db.query("update config set deep_research_model = ?, secret = ?, google_search_engine_key = ?, google_search_engine_cx_id = ?, google_api_key = ?", (config['deep_research_model'], config['secret'], config['google_search_engine_key'], config['google_search_engine_cx_id'], config['google_api_key']))
+        self.db.query("update config set deep_research_model = ?, secret = ?, google_search_engine_key = ?, google_search_engine_cx_id = ?, google_api_key = ?",
+                      (config['deep_research_model'], config['secret'], config['google_search_engine_key'], config['google_search_engine_cx_id'], config['google_api_key']))
         return self.getConfig()
-    
-    
+
     def getAllResearchHistory(self) -> list[dict[str, str]]:
         """
         Get the research history.
@@ -138,16 +138,15 @@ class _DataProvider:
             list[dict[str, str]]: Research history.
         """
         return self.db.query("select id, name, created_at from research_history")
-    
-    
+
     def addResearchHistory(self, name: str, history: list[dict[str, str]]):
         """
         Add a research history.
         """
-        self.db.query("insert into research_history (name, history, created_at) values (?,?,?)", (name, json.dumps(history), int(time.time())))
-        return self.getAllResearchHistory()
-    
-    
+        self.db.query("insert into research_history (name, history, created_at) values (?,?,?)",
+                      (name, json.dumps(history), int(time.time())))
+        return self.db.query("select last_insert_rowid()")[0]['last_insert_rowid()']
+
     def getResearchHistory(self, id: int) -> dict[str, str]:
         """
         Get a research history.
@@ -163,8 +162,7 @@ class _DataProvider:
             return None
         r[0]['history'] = json.loads(r[0]['history'])
         return r[0]
-    
-    
+
     def deleteResearchHistory(self, id: int):
         """
         Delete a research history.
@@ -174,6 +172,28 @@ class _DataProvider:
         """
         self.db.query("delete from research_history where id = ?", (id,))
         return self.getAllResearchHistory()
-    
-    
+
+    def updateResearchHistoryTitle(self, id: int, title: str):
+        """
+        Update a research history title.
+
+        Args:
+            id (int): ID of the research history.
+            title (str): New title.
+        """
+        self.db.query(
+            "update research_history set name = ? where id = ?", (title, id))
+        
+    def updateResearchHistory(self, id: int, history: list[dict[str, str]]):
+        """
+        Update a research history.
+
+        Args:
+            id (int): ID of the research history.
+            history (list[dict[str, str]]): New history.
+        """
+        self.db.query(
+            "update research_history set history = ? where id = ?", (json.dumps(history), id))
+
+
 DataProvider = _DataProvider()

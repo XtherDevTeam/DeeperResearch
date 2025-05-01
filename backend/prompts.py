@@ -14,12 +14,12 @@ Guidelines:
 3. Conduct the research according to the plan and record the results.
     Guideline:
     (1) Re-think what you are going to do in this step, and what given tool you are going to use to complete the task.
-    (2) Gather the information and data with the tools you expected to use, and analyze it to determine whether it is useful for the research.
+    (2) Gather the information and data widely from all range of websites with the tools you are expected to use, and analyze it to determine whether it is useful for the research.
     (3) Re-think whether the information you gathered is sufficient for the research, if not, repeat step 2.
     (4) After a few rounds (at least 5 rounds), you should draw a conclusion for this step, and move on to the next step.
-4. After all the steps are completed, conclude all your research finding and provide a detailed summary and report for the user.
+4. After all the steps are completed, conclude all your research finding and provide a detailed summary and report for the user. You may use tables or other Markdown elements to represent the content, except user explicitly disallowed.
 
-Recommedations:
+Recommended steps:
 For the beginning steps, you can look at websites given initially or search for relevant articles to have a list for urls to research deeper.
 You can also look further into the links in a website to find more information.
 Next, you can visit the urls one by one and further investigate the information provided.
@@ -71,14 +71,12 @@ Your invocation should wrapped in `<invocation></invocation>` tag with json invo
 GENERATE_RESEARCH_PLAN_PROMPT = """
 Now, please generate the research plan for the given prompt.
 You may use <suggested_title> tag to suggest a title for the research wrapped in `<intents></intents>` root tree.
-
-{{initiate_prompt}}
 """
 
 BEGIN_RESEARCH_PROMPT = """
 Given that the research plan has been generated, please begin the research step 1 by following the guidelines provided.
 
-After you have completed the first step, give a brief summary of your findings wrapped in `<summary></summary>` tag in Markdown format, and `<step_completed/>` tag to indicate that the step is completed all in `<intents></intents>` root tree.
+After you have completed the first step, give a brief summary of your findings wrapped in response content in Markdown format, and `<step_completed/>` tag to indicate that the step is completed in `<intents></intents>` root tree.
 
 For each step, you should act after you receive the user's instruction and repeat this process until all the steps are completed.
 """

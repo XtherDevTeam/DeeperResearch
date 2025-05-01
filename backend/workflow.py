@@ -1,4 +1,5 @@
 import bs4
+import dataProvider
 import logger
 import time
 import chatModel
@@ -12,13 +13,14 @@ import json
 
 
 class ResearchWorkflow():
-    def __init__(self, prompt: str, enabled_tools: list[typing.Callable] = workflowTools.AvailableTools()) -> None:
+    def __init__(self, prompt: str, enabled_tools: list[typing.Callable] = workflowTools.AvailableTools(), api_key: str = None) -> None:
         """
         Initiate a deep research workflow with a given prompt and enabled tools.
 
         Args:
             prompt (str): The prompt given for research plan generation.
             enabled_tools (list[str], optional): The list of enabled tools for research plan generation. Defaults to [].
+            api_key (str, optional): The API key for Google's generative AI. Defaults to None.
         """
         self.generated_tool_descriptions = ''.join(
             [workflowTools.GetToolReadableDescription(i) for i in enabled_tools])
@@ -28,7 +30,7 @@ class ResearchWorkflow():
         })
         print(self.system_prompt)
         self.llm = chatModel.ChatGoogleGenerativeAI(
-            config.USE_LLM, system_prompt=self.system_prompt)
+            dataProvider.DataProvider.getConfig()["deep_research_model"], system_prompt=self.system_prompt, api_key=api_key)
         self.history = []
         self.hooks = {
             "research_initiated": [],
@@ -41,6 +43,7 @@ class ResearchWorkflow():
         self.enabled_tools = enabled_tools
         self.enabled_tools_mapping = {
             i.__name__: i for i in self.enabled_tools}
+        self.current_step = 1
 
     def trigger_hook(self, hook_name: str, *args, **kwargs) -> None:
         """
@@ -51,22 +54,32 @@ class ResearchWorkflow():
             *args: The arguments to pass to the hook.
             **kwargs: The keyword arguments to pass to the hook.
         """
+        logger.Logger.log(f'Triggering hook {hook_name}')
         if hook_name in self.hooks:
             for hook in self.hooks[hook_name]:
                 hook(*args, **kwargs)
 
-    def append_system_history(self, msg: str) -> None:
+    def append_system_history(self, msg: str | list[dict[str, str]] | dict[str, str]) -> None:
         """
         Append a system message to the history.
 
         Args:
-            msg (str): The system message to append.
+            msg (str | list[dict[str, str]] | dict[str, str]): The system message to append.
         """
-        self.history.append({
-            "role": "system",
-            "content": msg,
-            "content_type": "text",
-        })
+        logger.Logger.log(f'Appending system message...')
+        if isinstance(msg, str):
+            self.history.append({
+                "role": "system",
+                "content": msg,
+                "content_type": "text",
+            })
+        else:
+            logger.Logger.log(f'Appending system message...')
+            self.history.append({
+                "role": "system",
+                "content": msg,
+                "content_type": "json",
+            })
         self.trigger_hook("new_message", self.history[-1])
 
     def append_bot_history(self, msg: str) -> None:
@@ -76,6 +89,7 @@ class ResearchWorkflow():
         Args:
             msg (str): The bot message to append.
         """
+        logger.Logger.log(f'Appending system message...')
         self.history.append({
             "role": "bot",
             "content": msg,
@@ -90,6 +104,7 @@ class ResearchWorkflow():
         Args:
             msg (str): The user message to append.
         """
+        logger.Logger.log(f'Appending user message...')
         self.history.append({
             "role": "user",
             "content": msg,
@@ -106,8 +121,8 @@ class ResearchWorkflow():
         """
         prompt = prompts.Prompt(prompts.GENERATE_RESEARCH_PLAN_PROMPT, )
         self.append_system_history(prompt)
-        plan, thinking = self.llm.initiate(prompt, with_thinking=True)
-        parsed_plan = self.parseResponse(plan, thinking)
+        plan = self.llm.initiate(prompt)
+        parsed_plan = self.parseResponse(plan)
         if parsed_plan['intents']:
             # suggest title
             for i in parsed_plan['intents']:
@@ -116,7 +131,7 @@ class ResearchWorkflow():
         self.trigger_hook("research_initiated")
         return plan
 
-    def parseResponse(self, response: str, thinking: str = "") -> dict[str, str]:
+    def parseResponse(self, response: str) -> dict[str, str]:
         """
         Parse bot response to extract information and intents from the response.
 
@@ -159,13 +174,11 @@ class ResearchWorkflow():
             return {
                 "response": response,
                 "intents": tags,
-                "thinking": thinking,
             }
         else:
             return {
                 "response": response,
                 "intents": {},
-                "thinking": thinking,
             }
 
     def throwError(self, error_msg: str) -> None:
@@ -228,6 +241,7 @@ class ResearchWorkflow():
             case "step_completed":
                 # invoke hook
                 logger.Logger.log(f'Handling intent {intent}')
+                self.current_step += 1
                 self.trigger_hook("research_step_finished")
                 # do not influence the chat model, no result generated
                 return None
@@ -252,9 +266,9 @@ class ResearchWorkflow():
 
         while True:
             self.append_system_history(prompt)
-            result, thinking = self.llm.chat(prompt if isinstance(
-                prompt, str) else json.dumps(prompt), with_thinking=True)
-            parsed_result = self.parseResponse(result, thinking)
+            result = self.llm.chat(prompt if isinstance(
+                prompt, str) else json.dumps(prompt))
+            parsed_result = self.parseResponse(result)
             if 'intents' in parsed_result:
                 intent_result = []
                 for i in parsed_result['intents']:
@@ -263,9 +277,86 @@ class ResearchWorkflow():
                     if response:
                         intent_result.append(response)
 
+                self.append_bot_history(parsed_result)
                 if intent_result:
                     # supply to llm again for further processing
-                    self.append_bot_history(parsed_result)
+                    prompt = intent_result
+                else:
+                    # no intents found, end of research
+                    break
+            else:
+                self.append_bot_history(parsed_result)
+                break
+        return parsed_result
+
+    def next_step(self) -> str:
+        """
+        Proceed the next step of the research plan.
+
+        Returns:
+            str: The next step of the research plan.
+        """
+        prompt = prompts.Prompt(prompts.RESEARCH_STEP_PROMPT, {
+            "step_number": self.current_step,
+        })
+
+        while True:
+            self.append_system_history(prompt)
+            result = self.llm.chat(prompt if isinstance(
+                prompt, str) else json.dumps(prompt))
+            parsed_result = self.parseResponse(result)
+            if 'intents' in parsed_result:
+                intent_result = []
+                for i in parsed_result['intents']:
+                    response = self.handleIntent(
+                        i['name'], i['content'])
+                    if response:
+                        intent_result.append(response)
+
+                self.append_bot_history(parsed_result)
+                if intent_result:
+                    # supply to llm again for further processing
+                    prompt = intent_result
+                else:
+                    # no intents found, end of research
+                    break
+            else:
+                self.append_bot_history(parsed_result)
+                break
+        return parsed_result
+    
+    def interact(self, prompt: str) -> str:
+        """
+        Interact with the chat model and return the response generated by the chat model.
+
+        Args:
+            prompt (str): The prompt to send to the chat model.
+
+        Returns:
+            str: The response generated by the chat model.
+        """
+        
+        first = True
+        while True:
+            if first:
+                self.append_user_history(prompt)
+            else:
+                self.append_system_history(prompt)
+                first = False
+            result = self.llm.chat(prompt if isinstance(
+                prompt, str) else json.dumps(prompt))
+            parsed_result = self.parseResponse(result)
+            if 'intents' in parsed_result:
+                intent_result = []
+                for i in parsed_result['intents']:
+                    response = self.handleIntent(
+                        i['name'], i['content'])
+                    if response:
+                        intent_result.append(response)
+
+                self.append_bot_history(parsed_result)
+                if intent_result:
+                    # supply to llm again for further processing
                     prompt = intent_result
                 else:
                     # no intents found, end of research
@@ -363,16 +454,19 @@ class _ResearchWorkflowManager():
         for event_handler in self.registered_event[event_name]:
             event_handler(*args, **kwargs)
 
-    def create_workflow(self, prompt: str) -> str:
+    def create_workflow(self, prompt: str, history_id: int, api_key: str) -> str:
         session = uuid.uuid4().hex
         self.workflows[session] = {
             'title': "",
-            'workflow': ResearchWorkflow(prompt),
+            'workflow': ResearchWorkflow(prompt, api_key=api_key),
             'created_at': time.time(),
+            'history_id': history_id,
+            'client_id': None,
         }
 
         def event_title_suggested(title: str) -> None:
             self.workflows[session]['title'] = title
+            self.trigger_event("title_suggested", session, title)
 
         workflow: ResearchWorkflow = self.workflows[session]['workflow']
         workflow.add_hook("title_suggested", event_title_suggested)
@@ -397,6 +491,11 @@ class _ResearchWorkflowManager():
         if session not in self.workflows:
             raise ValueError(f"Invalid session: {session}")
         del self.workflows[session]['client_id']
+
+    def get_history_id(self, session: str) -> int:
+        if session not in self.workflows:
+            raise ValueError(f"Invalid session: {session}")
+        return self.workflows[session]['history_id']
 
     def get_client_id(self, session: str) -> str | None:
         if session not in self.workflows:

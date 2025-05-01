@@ -18,8 +18,8 @@ function Home() {
   const [currentTab, setCurrentTab] = React.useState(0);
   const [currentTheme, setCurrentTheme] = React.useState(theme.theme());
   const [selectedIndex, setSelectedIndex] = React.useState({
-    type: 'Home',
-    title: 'Home'
+    type: 'CreateResearch',
+    title: 'Create Research'
   });
   const [secondBoxMarginLeft, setSecondBoxMarginLeft] = React.useState('20vw')
 
@@ -82,10 +82,14 @@ function Home() {
     <Mui.Box style={{ display: 'block', marginLeft: secondBoxMarginLeft }}>
       <Mui.AppBar style={{ left: secondBoxMarginLeft, zIndex: 1200 }}>
         <Mui.Toolbar>
-
+          <Mui.Typography color="inherit" sx={{ fontWeight: 500, letterSpacing: 0.5, fontSize: 20 }}>
+            {selectedIndex.title}
+          </Mui.Typography>
         </Mui.Toolbar>
         <Mui.Paper style={{ padding: 0, borderTopLeftRadius: 30, height: `calc(100vh - 64px)`, width: `calc(100vw - ${secondBoxMarginLeft})` }}>
-          {selectedIndex.type == 'CreateResearch' && <CreateResearch />}
+          {selectedIndex.type == 'CreateResearch' && <CreateResearch setTitle={(title) => {
+            setSelectedIndex({ type: 'CreateResearch', title: title })
+          }} />}
           {selectedIndex.type == 'More' && <More />}
         </Mui.Paper>
       </Mui.AppBar>
