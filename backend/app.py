@@ -125,8 +125,115 @@ def create_research():
     return Result(True,
                   {
                       'id': hid,
-                      'workflow_session': ResearchWorkflowManager.create_workflow(data['prompt'], hid, dataProvider.DataProvider.getConfig()['google_api_key'])
+                      'workflow_session': ResearchWorkflowManager.create_workflow(data['prompt'], hid, dataProvider.DataProvider.getConfig()['google_api_key'], dataProvider.DataProvider.getAllEnabledUserScripts(), dataProvider.DataProvider.getAllEnabledExtraInfos())
                   })
+
+
+@app.route('/api/v1/extra_info', methods=['POST'])
+def extra_info():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    
+    return Result(True, dataProvider.DataProvider.getExtraInfoList())
+
+
+@app.route('/api/v1/extra_info/create', methods=['POST'])
+def create_extra_info():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    data = flask.request.get_json()
+    if 'name' not in data or 'description' not in data or 'author' not in data or 'enabled' not in data or 'content' not in data:
+        return Result(False, 'Invalid request')
+    ei_id = dataProvider.DataProvider.createExtraInfo(data['name'], data['description'], data['author'], data['content'], data['enabled'])
+    return Result(True, ei_id)
+
+
+@app.route('/api/v1/extra_info/get', methods=['POST'])
+def get_extra_info():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    data = flask.request.get_json()
+    if 'id' not in data:
+        return Result(False, 'Invalid request')
+    # return Result(True, dataProvider.DataProvider.getExtraInfo(data['id']))
+    r = dataProvider.DataProvider.getExtraInfo(data['id'])
+    if r is None:
+        return Result(False, 'Invalid id')
+    return Result(True, r)
+
+
+@app.route('/api/v1/extra_info/delete', methods=['POST'])
+def delete_extra_info():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    data = flask.request.get_json()
+    if 'id' not in data:
+        return Result(False, 'Invalid request')
+    dataProvider.DataProvider.deleteExtraInfo(data['id'])
+    return Result(True, 'Deleted')
+
+
+@app.route('/api/v1/extra_info/update', methods=['POST'])
+def update_extra_info():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    data = flask.request.get_json()
+    if 'id' not in data or 'name' not in data or 'description' not in data or 'author' not in data or 'enabled' not in data or 'content' not in data:
+        return Result(False, 'Invalid request')
+    dataProvider.DataProvider.updateExtraInfo(data['id'], data['name'], data['description'], data['author'], data['content'], data['enabled'])
+    return Result(True, 'success')
+
+
+@app.route('/api/v1/user_script', methods=['POST'])
+def user_script():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    return Result(True, dataProvider.DataProvider.getUserScriptList())
+
+
+@app.route('/api/v1/user_script/create', methods=['POST'])
+def create_user_script():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    data = flask.request.get_json()
+    if 'name' not in data or 'content' not in data or 'enabled' not in data:
+        return Result(False, 'Invalid request')
+    us_id = dataProvider.DataProvider.createUserScript(data['name'], data['content'], data['enabled'])
+    return Result(True, us_id)
+
+
+@app.route('/api/v1/user_script/get', methods=['POST'])
+def get_user_script():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    data = flask.request.get_json()
+    if 'id' not in data:
+        return Result(False, 'Invalid request')
+    r = dataProvider.DataProvider.getUserScript(data['id'])
+    if r is None:
+        return Result(False, 'Invalid id')
+    return Result(True, r)
+
+@app.route('/api/v1/user_script/delete', methods=['POST'])
+def delete_user_script():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    data = flask.request.get_json()
+    if 'id' not in data:
+        return Result(False, 'Invalid request')
+    dataProvider.DataProvider.deleteUserScript(data['id'])
+    return Result(True, 'Deleted')
+
+
+@app.route('/api/v1/user_script/update', methods=['POST'])
+def update_user_script():
+    if not check_if_authenticated():
+        return Result(False, 'Not authenticated')
+    data = flask.request.get_json()
+    if 'id' not in data or 'name' not in data or 'content' not in data or 'enabled' not in data:
+        return Result(False, 'Invalid request')
+    dataProvider.DataProvider.updateUserScript(data['id'], data['name'], data['content'], data['enabled'])
+    return Result(True, 'success')
 
 
 def route_workflow_new_message(session: str, message: dict[str, typing.Any]) -> None:
@@ -182,6 +289,14 @@ def route_workflow_error(session: str, error_msg: str) -> None:
     client_sid = ResearchWorkflowManager.get_client_id(session)
     socket.emit('error', error_msg, namespace='/session', to=client_sid)
     logger.Logger.log(f"Error in session {session}: {error_msg}")
+
+
+def route_workflow_token_count(session: str, count: int) -> None:
+    logger.Logger.log(f"Token count in session {session}: {count}")
+    if session not in ResearchWorkflowManager.workflows:
+        return
+    client_sid = ResearchWorkflowManager.get_client_id(session)
+    socket.emit('token_count', count, namespace='/session', to=client_sid)
 
 
 @socket.on('connect', namespace='/session')
@@ -267,6 +382,8 @@ if __name__ == '__main__':
         "title_suggested", route_workflow_title_suggested)
     ResearchWorkflowManager.add_event(
         "error", route_workflow_error)
+    ResearchWorkflowManager.add_event(
+        "token_count", route_workflow_token_count)
     if not dataProvider.DataProvider.checkIfInitialized():
         dataProvider.DataProvider.initialize()
     app.secret_key = dataProvider.DataProvider.getConfig()['secret']

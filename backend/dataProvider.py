@@ -157,11 +157,12 @@ class _DataProvider:
         Returns:
             dict[str, str]: Research history.
         """
-        r = self.db.query("select * from research_history where id = ?", (id,))
-        if len(r) == 0:
+        r = self.db.query(
+            "select * from research_history where id = ?", (id,), one=True)
+        if r is None:
             return None
-        r[0]['history'] = json.loads(r[0]['history'])
-        return r[0]
+        r['history'] = json.loads(r['history'])
+        return r
 
     def deleteResearchHistory(self, id: int):
         """
@@ -183,7 +184,7 @@ class _DataProvider:
         """
         self.db.query(
             "update research_history set name = ? where id = ?", (title, id))
-        
+
     def updateResearchHistory(self, id: int, history: list[dict[str, str]]):
         """
         Update a research history.
@@ -194,6 +195,155 @@ class _DataProvider:
         """
         self.db.query(
             "update research_history set history = ? where id = ?", (json.dumps(history), id))
+
+    def createExtraInfo(self, name: str, description: str, author: str, content: str, enabled: bool = True):
+        """
+        Create an extra info in database.
+
+        Args:
+            name (str): Name of the extra info.
+            description (str): Description of the extra info.
+            author (str): Author of the extra info.
+            content (str): Content of the extra info.
+            enabled (bool, optional): Whether the extra info is enabled. Defaults to True.
+        """
+
+        self.db.query("insert into extra_infos (name, description, author, content, enabled) values (?,?,?,?,?)",
+                      (name, description, author, content, enabled))
+        return self.db.query("select last_insert_rowid()")[0]['last_insert_rowid()']
+
+    def getExtraInfo(self, id: int) -> dict[str, str]:
+        """
+        Get an extra info from database.
+
+        Args:
+            id (int): ID of the extra info.
+
+        Returns:
+            dict[str, str]: Extra info.
+        """
+        r = self.db.query(
+            "select * from extra_infos where id = ?", (id,), one=True)
+        if r is None:
+            return None
+        return r
+
+    def getExtraInfoList(self) -> list[dict[str, str]]:
+        """
+        Get all extra info from database.
+
+        Returns:
+            list[dict[str, str]]: List of extra info.
+        """
+        return self.db.query("select name, description, author, enabled, id, content from extra_infos")
+
+    def updateExtraInfo(self, id: int, name: str, description: str, author: str, content: str, enabled: bool):
+        """
+        Update an extra info in database.
+
+        Args:
+            id (int): ID of the extra info.
+            name (str): Name of the extra info.
+            description (str): Description of the extra info.
+            author (str): Author of the extra info.
+            content (str): Content of the extra info.
+            enabled (bool): Whether the extra info is enabled.
+        """
+        self.db.query("update extra_infos set name = ?, description = ?, author = ?, content = ?, enabled = ? where id = ?",
+                      (name, description, author, content, enabled, id))
+        return self.db.query("select last_insert_rowid()")[0]['last_insert_rowid()']
+
+    def deleteExtraInfo(self, id: int):
+        """
+        Delete an extra info from database.
+
+        Args:
+            id (int): ID of the extra info.
+        """
+        self.db.query("delete from extra_infos where id = ?", (id,))
+        return self.getExtraInfoList()
+
+    def createUserScript(self, name: str, content: str, enabled: bool = True):
+        """
+        Create a user script in database.
+
+        Args:
+            name (str): Name of the user script.
+            content (str): Content of the user script.
+            enabled (bool, optional): Whether the user script is enabled. Defaults to True.
+        """
+
+        self.db.query("insert into user_scripts (name, content, enabled) values (?,?,?)",
+                      (name, content, enabled))
+        return self.db.query("select last_insert_rowid()")[0]['last_insert_rowid()']
+
+    def getUserScript(self, id: int) -> dict[str, str]:
+        """
+        Get a user script from database.
+
+        Args:
+            id (int): ID of the user script.
+
+        Returns:
+            dict[str, str]: User script.
+        """
+        r = self.db.query(
+            "select * from user_scripts where id = ?", (id,), one=True)
+        if r is None:
+            return None
+        return r
+
+    def getUserScriptList(self) -> list[dict[str, str]]:
+        """
+        Get all user script from database.
+
+        Returns:
+            list[dict[str, str]]: List of user script.
+        """
+        return self.db.query("select name, enabled, id, content from user_scripts")
+
+    def updateUserScript(self, id: int, name: str, content: str, enabled: bool):
+        """
+        Update a user script in database.
+
+        Args:
+            id (int): ID of the user script.
+            name (str): Name of the user script.
+            content (str): Content of the user script.
+            enabled (bool): Whether the user script is enabled.
+        """
+        self.db.query("update user_scripts set name = ?, content = ?, enabled = ? where id = ?",
+                      (name, content, enabled, id))
+        return self.db.query("select last_insert_rowid()")[0]['last_insert_rowid()']
+
+    def deleteUserScript(self, id: int):
+        """
+        Delete a user script from database.
+
+        Args:
+            id (int): ID of the user script.
+        """
+        self.db.query("delete from user_scripts where id = ?", (id,))
+        return self.getUserScriptList()
+    
+    
+    def getAllEnabledExtraInfos(self) -> list[dict[str, str]]:
+        """
+        Get all enabled extra infos from database.
+
+        Returns:
+            list[dict[str, str]]: List of enabled extra infos.
+        """
+        return self.db.query("select name, description, author, content, id from extra_infos where enabled = 1")
+
+    def getAllEnabledUserScripts(self) -> list[dict[str, str]]:
+        """
+        Get all enabled user scripts from database.
+
+        Returns:
+            list[dict[str, str]]: List of enabled user scripts.
+        """
+        return self.db.query("select name, content, id from user_scripts where enabled = 1")
 
 
 DataProvider = _DataProvider()

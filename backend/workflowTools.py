@@ -19,7 +19,9 @@ def WebsiteReader(url: str) -> dict[str, list[dict] | str]:
         For key `content`, the value is the text content of the website. For key `links`, the value is a list of dictionaries
     """
     userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:137.0) Gecko/20100101 Firefox/137.0'
-    content = requests.get(url, headers={'User-Agent': userAgent}).content
+    resp = requests.get(url, headers={'User-Agent': userAgent}, timeout=1240)
+    print(resp)
+    content = resp.content
     soup = bs4.BeautifulSoup(content, 'html.parser')
     all_text = soup.get_text()
 

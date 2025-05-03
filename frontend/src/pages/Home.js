@@ -7,6 +7,8 @@ import theme from "../theme";
 import Message from "../components/Message";
 import More from './More';
 import CreateResearch from "./CreateResearch";
+import HistoryView from "./HistoryView";
+import Extensions from "./Extensions";
 
 function Home() {
   const navigate = useNavigate();
@@ -19,10 +21,11 @@ function Home() {
   const [currentTheme, setCurrentTheme] = React.useState(theme.theme());
   const [selectedIndex, setSelectedIndex] = React.useState({
     type: 'CreateResearch',
-    title: 'Create Research'
+    title: 'Create Research',
+    data: null
   });
   const [secondBoxMarginLeft, setSecondBoxMarginLeft] = React.useState('20vw')
-
+  const [researchHistory, setResearchHistory] = React.useState([]);
 
   // message related
   const [messageTitle, setMessageTitle] = React.useState('')
@@ -32,10 +35,23 @@ function Home() {
 
   const drawerRef = React.useRef(null);
 
-
-  theme.listenToThemeModeChange(() => {
-    setCurrentTheme(theme.theme());
-  })
+  React.useEffect(() => {
+    Api.getAllResearchHistory().then(r => {
+      if (r.status) {
+        console.log(r.data)
+        setResearchHistory(r.data)
+      } else {
+        console.log(r.data)
+        setMessageTitle('Error')
+        setMessageContent(r.data)
+        setMessageType('error')
+        setMessageOpen(true)
+      }
+    })
+    theme.listenToThemeModeChange(() => {
+      setCurrentTheme(theme.theme());
+    })
+  }, [])
 
   return <Mui.Box style={{ position: 'absolute', top: 0, left: 0, height: '100vh', width: '100vw', backgroundColor: currentTheme.palette.surfaceContainer.main }}>
     <Message title={messageTitle} message={messageContent} type={messageType} open={messageOpen} dismiss={() => setMessageOpen(false)}></Message>
@@ -47,19 +63,24 @@ function Home() {
       </Mui.Toolbar>
       <Mui.List style={{ padding: 10 }}>
         <Mui.Box>
-          <Mui.ListItem sx={{ py: 2, px: 3, padding: 10 }}>
-            <Mui.ListItemText sx={{ fontWeight: 'bold' }}>
-              <Mui.Typography color="inherit" sx={{ ml: 1, fontSize: 15, fontWeight: 500 }} >
-                Chats
-              </Mui.Typography>
-            </Mui.ListItemText>
-          </Mui.ListItem>
-          <Mui.ListItemButton selected={selectedIndex.type == "CreateResearch"} onClick={() => { setSelectedIndex({ type: "CreateResearch", title: "Create Research" }); }}>
+          <Mui.ListItemButton selected={selectedIndex.type === "CreateResearch"} onClick={() => { setSelectedIndex({ type: "CreateResearch", title: "Create Research", data: null }); }}>
             <Mui.ListItemIcon>
               <Mui.Icons.Biotech />
             </Mui.ListItemIcon>
             <Mui.ListItemText primary="Create Research" />
           </Mui.ListItemButton>
+          <Mui.ListItem sx={{ py: 2, px: 3, padding: 10 }}>
+            <Mui.ListItemText sx={{ fontWeight: 'bold' }}>
+              <Mui.Typography color="inherit" sx={{ ml: 1, fontSize: 15, fontWeight: 500 }} >
+                Recent
+              </Mui.Typography>
+            </Mui.ListItemText>
+          </Mui.ListItem>
+          {researchHistory.map((item, index) => <>
+            <Mui.ListItemButton selected={selectedIndex.type == 'HistoryView' && selectedIndex.data == item.id} onClick={() => { setSelectedIndex({ type: 'HistoryView', title: item.name, data: item.id }) }}>
+              <Mui.ListItemText primary={item.name} />
+            </Mui.ListItemButton>
+          </>)}
         </Mui.Box>
         <Mui.Box>
           <Mui.ListItem sx={{ py: 2, px: 3, padding: 10 }}>
@@ -69,8 +90,13 @@ function Home() {
               </Mui.Typography>
             </Mui.ListItemText>
           </Mui.ListItem>
-
-          <Mui.ListItemButton selected={selectedIndex.type == "More"} onClick={() => { setSelectedIndex({ type: "More", title: "More" }); }}>
+          <Mui.ListItemButton selected={selectedIndex.type === "Extensions"} onClick={() => { setSelectedIndex({ type: "Extensions", title: "Extensions", data: null }); }}>
+            <Mui.ListItemIcon>
+              <Mui.Icons.Extension />
+            </Mui.ListItemIcon>
+            <Mui.ListItemText primary="Extensions" />
+          </Mui.ListItemButton>
+          <Mui.ListItemButton selected={selectedIndex.type === "More"} onClick={() => { setSelectedIndex({ type: "More", title: "More", data: null }); }}>
             <Mui.ListItemIcon>
               <Mui.Icons.Apps />
             </Mui.ListItemIcon>
@@ -87,10 +113,12 @@ function Home() {
           </Mui.Typography>
         </Mui.Toolbar>
         <Mui.Paper style={{ padding: 0, borderTopLeftRadius: 30, height: `calc(100vh - 64px)`, width: `calc(100vw - ${secondBoxMarginLeft})` }}>
-          {selectedIndex.type == 'CreateResearch' && <CreateResearch setTitle={(title) => {
+          {selectedIndex.type === 'CreateResearch' && <CreateResearch setTitle={(title) => {
             setSelectedIndex({ type: 'CreateResearch', title: title })
           }} />}
-          {selectedIndex.type == 'More' && <More />}
+          {selectedIndex.type === 'More' && <More />}
+          {selectedIndex.type === 'HistoryView' && <HistoryView id={selectedIndex.data} sx={{ height: '100%', overflowY: 'scroll', width: '100%' }} />}
+          {selectedIndex.type === 'Extensions' && <Extensions />}
         </Mui.Paper>
       </Mui.AppBar>
     </Mui.Box>

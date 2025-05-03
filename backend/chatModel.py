@@ -1,4 +1,6 @@
 import mimetypes
+import time
+import random
 from typing import Any
 import typing
 # import google.generativeai as genai # Old import
@@ -6,6 +8,7 @@ import typing
 
 from google import genai  # New import
 from google.genai import types  # New import for type definitions
+import google.genai.errors
 
 import logger  # Assuming this is a custom logger
 
@@ -33,6 +36,7 @@ class ChatGoogleGenerativeAI():
         self.tools = tools
         self.chat_session = None
         self.with_thinking = with_thinking
+        self.token_count = 0
 
     def initiate(self, begin_msg: list[dict[str, str]], streamed: bool = False) -> str | types.GenerateContentResponse | typing.Iterator[types.GenerateContentResponse]:
         if self.chat_session is None:
@@ -50,20 +54,40 @@ class ChatGoogleGenerativeAI():
                 config=chat_config
             )
 
+
         if not streamed:
             resp = self.chat_session.send_message(begin_msg)
+            self.token_count = resp.usage_metadata.total_token_count
             return resp.text
         else:
             # Use send_message_stream for streaming
             return self.chat_session.send_message_stream(begin_msg)
 
-    def chat(self, user_msg: list[dict[str, str]], streamed: bool = False) -> str | typing.Iterator[types.GenerateContentResponse]:
+    def chat(self, user_msg: list[dict[str, str]], streamed: bool = False, retryAttempts: int = 10) -> str | typing.Iterator[types.GenerateContentResponse]:
         if self.chat_session is None:
             raise ValueError(f'{__name__}: Chat session not initiated')
 
-        # chat with user message
-        if not streamed:
-            resp = self.chat_session.send_message(user_msg)
-            return resp.text
-        else:
-            return self.chat_session.send_message_stream(user_msg)
+        current_attempt = 0
+        while current_attempt <= retryAttempts:
+            try:        
+                # chat with user message
+                if not streamed:
+                    resp = self.chat_session.send_message(user_msg)
+                    self.token_count = resp.usage_metadata.total_token_count
+                    return resp.text
+                else:
+                    return self.chat_session.send_message_stream(user_msg)
+            except google.genai.errors.ClientError as e:
+                logger.Logger.log(f'{__name__}: {e}')
+                current_attempt += 1
+                if isinstance(e.details, list):
+                    for d in e.details:
+                        if isinstance(d, dict):
+                            if 'retryDelay' in d:
+                                time.sleep(int(d['retryDelay'][0:-1])) #xxs
+                                break
+                time.sleep(random.randint(5,30))
+
+
+    def count_tokens(self) -> int:
+        return self.token_count

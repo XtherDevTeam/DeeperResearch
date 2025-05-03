@@ -10,6 +10,8 @@ function CreateResearch({ setTitle }) {
   const [inputContent, setInputContent] = React.useState("");
   const [connect, setConnect] = React.useState(false);
   const [researchId, setResearchId] = React.useState(null);
+  const [tokenCount, setTokenCount] = React.useState(0);
+  const scrollableRef = React.useRef(null);
 
   // message alert related
   const [messageOpen, setMessageOpen] = React.useState(false);
@@ -43,7 +45,7 @@ function CreateResearch({ setTitle }) {
       }).catch(err => {
         console.log(err);
         setMessageTitle('Error');
-        setMessageContent(err.message);
+        setMessageContent(err.data);
         setMessageType('error');
         setMessageOpen(true);
       })
@@ -73,10 +75,12 @@ function CreateResearch({ setTitle }) {
     }} sx={{ height: '100%', overflowY: 'scroll', width: '100%' }} inputEvent={inputEvent} connect={connect} onErr={(err) => {
       console.log(err);
       setMessageTitle('Error');
-      setMessageContent(err.message);
+      setMessageContent(err.data);
       setMessageType('error');
       setMessageOpen(true);
-    }} ref={null} />}
+    }} ref={scrollableRef} onUpdateTokenCount={(count) => {
+      setTokenCount(count);
+    }} />}
     {/* Text Area Fixed */}
     <Mui.Box sx={{
       position: 'fixed',
@@ -109,6 +113,11 @@ function CreateResearch({ setTitle }) {
             }}>
               {connect ? 'Send' : 'Start Research'}
             </Mui.Button>
+          </Mui.Grid>
+          <Mui.Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Mui.Typography variant="body2">
+              {tokenCount} tokens used. Always double-check the result before sharing.
+            </Mui.Typography>
           </Mui.Grid>
         </Mui.Grid>
       </Mui.Paper>

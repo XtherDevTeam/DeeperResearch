@@ -56,7 +56,7 @@ function More() {
         })
       } else {
         setMessageTitle('Error')
-        setMessageContent(r.data.message)
+        setMessageContent(r.data.data)
         setMessageType('error')
         setMessageOpen(true)
       }
@@ -78,7 +78,7 @@ function More() {
             setMessageTitle('Success')
           } else {
             setMessageTitle('Error')
-            setMessageContent(r.data.message)
+            setMessageContent(r.data.data)
             setMessageType('error')
             setMessageOpen(true)
           }
@@ -119,7 +119,7 @@ function More() {
               setMessageTitle('Success')
             } else {
               setMessageTitle('Error')
-              setMessageContent(r.data.message)
+              setMessageContent(r.data.data)
               setMessageType('error')
               setMessageOpen(true)
             }
@@ -136,7 +136,7 @@ function More() {
               setMessageTitle('Success')
             } else {
               setMessageTitle('Error')
-              setMessageContent(r.data.message)
+              setMessageContent(r.data.data)
               setMessageType('error')
               setMessageOpen(true)
             }
@@ -153,7 +153,7 @@ function More() {
               setMessageTitle('Success')
             } else {
               setMessageTitle('Error')
-              setMessageContent(r.data.message)
+              setMessageContent(r.data.data)
               setMessageType('error')
               setMessageOpen(true)
             }
@@ -170,7 +170,7 @@ function More() {
               setMessageTitle('Success')
             } else {
               setMessageTitle('Error')
-              setMessageContent(r.data.message)
+              setMessageContent(r.data.data)
               setMessageType('error')
               setMessageOpen(true)
             }
@@ -187,7 +187,7 @@ function More() {
               setMessageTitle('Success')
             } else {
               setMessageTitle('Error')
-              setMessageContent(r.data.message)
+              setMessageContent(r.data.data)
               setMessageType('error')
               setMessageOpen(true)
             }

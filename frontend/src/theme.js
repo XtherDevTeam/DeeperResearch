@@ -573,7 +573,8 @@ let darkTheme = {
               "& + .MuiSwitch-track": {
                 "backgroundColor": "#f1afff",
                 "opacity": 1,
-                "border": 0
+                "border": 0,
+                height: 24
               },
               "& .MuiSwitch-thumb": {
                 "color": "#53036b",
@@ -616,7 +617,8 @@ let darkTheme = {
             "border": "2px solid #988e97",
             "backgroundColor": "#383437",
             "opacity": 1,
-            "transition": "background .2s"
+            "transition": "background .2s",
+            height: 22
           }
         }
       }
@@ -2012,7 +2014,8 @@ let lightTheme = {
               "& + .MuiSwitch-track": {
                 "backgroundColor": "#883f9d",
                 "opacity": 1,
-                "border": 0
+                "border": 0,
+                height: 24
               },
               "& .MuiSwitch-thumb": {
                 "color": "#ffffff",
@@ -2055,7 +2058,8 @@ let lightTheme = {
             "border": "2px solid #7e747d",
             "backgroundColor": "#e8e0e5",
             "opacity": 1,
-            "transition": "background .2s"
+            "transition": "background .2s",
+            height: 22
           }
         }
       }

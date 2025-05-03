@@ -51,6 +51,7 @@ You are obliged to use the following tools during your research process:
 
 When initiating an invocation, you should use the following format at the end of your response:
 Your invocation should wrapped in `<invocation></invocation>` tag with json invocation instruction supplied with right tool name and parameter format.
+Also, you can use multiple tools in one row.
 
 ```
 <intents>
@@ -65,6 +66,10 @@ Your invocation should wrapped in `<invocation></invocation>` tag with json invo
     </invocation>
     ...
 </intents>
+
+There is some additional information that is helpful to your research:
+
+{{extra_infos}}
 ```
 """
 

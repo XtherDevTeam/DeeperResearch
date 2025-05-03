@@ -16,7 +16,8 @@ class RoomObject {
       'research_finished': [],
       'research_step_finished': [],
       'title_suggested': [],
-      'error': []
+      'error': [],
+      'token_count': []
     }
 
     // bind connect event
@@ -53,6 +54,11 @@ class RoomObject {
     this.socket.on('error', (data) => {
       this.events['error'].forEach(callback => callback(data))
     })
+    // token count event
+    this.socket.on('token_count', (data) => {
+      console.log('Token count:', data)
+      this.events['token_count'].forEach(callback => callback(data))
+    })
   }
 
   on(event, callback) {
@@ -83,6 +89,10 @@ class RoomObject {
 
   on_title_suggested(callback) {
     this.on('title_suggested', callback)
+  }
+
+  on_token_count(callback) {
+    this.on('token_count', callback)
   }
 
   connect() {
