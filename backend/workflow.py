@@ -47,7 +47,7 @@ class ResearchWorkflow():
         })
         logger.Logger.log(self.system_prompt)
         self.llm = chatModel.ChatGoogleGenerativeAI(
-            dataProvider.DataProvider.getConfig()["deep_research_model"], system_prompt=self.system_prompt, api_key=api_key)
+            dataProvider.DataProvider.getConfig()["deep_research_model"], thinking_budget=int(dataProvider.DataProvider.getConfig()["thinking_token_budget"]), system_prompt=self.system_prompt, api_key=api_key)
         self.history = []
         self.hooks = {
             "research_initiated": [],

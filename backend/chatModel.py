@@ -27,7 +27,7 @@ class ChatGoogleGenerativeAI():
         chat_session (genai.ChatSession | None): The active chat session.
     """
 
-    def __init__(self, model: str, with_thinking: bool = False, temperature: float = 0.9, safety_settings: Any = None, system_prompt: str | None = None, tools: list[typing.Any] = [], api_key: str = None) -> None:
+    def __init__(self, model: str, with_thinking: bool = False, thinking_budget: int = 8192, temperature: float = 0.9, safety_settings: Any = None, system_prompt: str | None = None, tools: list[typing.Any] = [], api_key: str = None) -> None:
         self.client = genai.Client(api_key=api_key)
         self.model_name = model
         self.temperature = temperature
@@ -37,6 +37,7 @@ class ChatGoogleGenerativeAI():
         self.chat_session = None
         self.with_thinking = with_thinking
         self.token_count = 0
+        self.thinking_budget = thinking_budget
 
     def initiate(self, begin_msg: list[dict[str, str]], streamed: bool = False) -> str | types.GenerateContentResponse | typing.Iterator[types.GenerateContentResponse]:
         if self.chat_session is None:
@@ -46,7 +47,8 @@ class ChatGoogleGenerativeAI():
                 tools=self.tools,
                 system_instruction=self.system_prompt,
                 thinking_config=types.ThinkingConfigDict(
-                    include_thoughts=self.with_thinking)
+                    include_thoughts=self.with_thinking,
+                    thinking_budget=thinking_budget)
             )
 
             self.chat_session = self.client.chats.create(
