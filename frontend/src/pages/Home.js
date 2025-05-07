@@ -9,6 +9,41 @@ import More from './More';
 import CreateResearch from "./CreateResearch";
 import HistoryView from "./HistoryView";
 import Extensions from "./Extensions";
+import { useLongPress } from 'use-long-press'
+
+function ResearchAction({ research, onOk, onClose, onErr, open }) {
+  return <Mui.Dialog onClose={onClose} open={open}>
+    <Mui.DialogTitle>
+      {research?.name}
+    </Mui.DialogTitle>
+    {research && <Mui.List>
+      <Mui.ListItemButton onClick={() => {
+        Api.deleteResearchHistory(research.id).then(r => {
+          if (r.status) {
+            onOk('Successfully deleted')
+            onClose()
+          }
+        }).catch(e => {
+          onErr('Network error')
+          onClose()
+        })
+      }} >
+        <Mui.ListItemIcon>
+          <Mui.Icons.Delete />
+        </Mui.ListItemIcon>
+        <Mui.ListItemText primary="Delete" />
+      </Mui.ListItemButton>
+      <Mui.ListItemButton onClick={() => {
+        onClose()
+      }} >
+        <Mui.ListItemIcon>
+          <Mui.Icons.Close />
+        </Mui.ListItemIcon>
+        <Mui.ListItemText primary="Cancel" />
+      </Mui.ListItemButton>
+    </Mui.List>}
+  </Mui.Dialog>
+}
 
 function Home() {
   const navigate = useNavigate();
@@ -27,6 +62,9 @@ function Home() {
   const [secondBoxMarginLeft, setSecondBoxMarginLeft] = React.useState('20vw')
   const [researchHistory, setResearchHistory] = React.useState([]);
 
+  const [currentResearch, setCurrentResearch] = React.useState(null)
+  const [currentResearchActionOpen, setCurrentResearchActionOpen] = React.useState(false)
+
   // message related
   const [messageTitle, setMessageTitle] = React.useState('')
   const [messageContent, setMessageContent] = React.useState('')
@@ -35,7 +73,7 @@ function Home() {
 
   const drawerRef = React.useRef(null);
 
-  React.useEffect(() => {
+  function handleResearchListUpdate() {
     Api.getAllResearchHistory().then(r => {
       if (r.status) {
         console.log(r.data)
@@ -48,6 +86,10 @@ function Home() {
         setMessageOpen(true)
       }
     })
+  }
+
+  React.useEffect(() => {
+    handleResearchListUpdate()
     theme.listenToThemeModeChange(() => {
       setCurrentTheme(theme.theme());
     })
@@ -55,6 +97,30 @@ function Home() {
 
   return <Mui.Box style={{ position: 'absolute', top: 0, left: 0, height: '100vh', width: '100vw', backgroundColor: currentTheme.palette.surfaceContainer.main }}>
     <Message title={messageTitle} message={messageContent} type={messageType} open={messageOpen} dismiss={() => setMessageOpen(false)}></Message>
+    <ResearchAction
+      research={currentResearch}
+      onOk={(message) => {
+        setMessageTitle('Success')
+        setMessageContent(message)
+        setMessageType('success')
+        setMessageOpen(true)
+        setCurrentResearch(null)
+        setCurrentResearchActionOpen(false)
+        // re-render
+        handleResearchListUpdate()
+      }}
+      onClose={() => {
+        setCurrentResearch(null)
+        setCurrentResearchActionOpen(false)
+      }}
+      onErr={(message) => {
+        setMessageTitle('Error')
+        setMessageContent(message)
+        setMessageType('error')
+        setMessageOpen(true)
+      }}
+      open={currentResearchActionOpen}
+    />
     <Mui.Drawer ref={drawerRef} open={true} onLoad={() => { console.log(drawerRef) }} variant="permanent" style={{ position: 'absolute', top: 0, left: 0, height: '100vh' }} PaperProps={{ sx: { width: '20vw' } }}>
       <Mui.Toolbar>
         <Mui.Typography color="inherit" sx={{ fontWeight: 500, letterSpacing: 0.5, fontSize: 20 }}>
@@ -77,7 +143,12 @@ function Home() {
             </Mui.ListItemText>
           </Mui.ListItem>
           {researchHistory.map((item, index) => <>
-            <Mui.ListItemButton selected={selectedIndex.type == 'HistoryView' && selectedIndex.data == item.id} onClick={() => { setSelectedIndex({ type: 'HistoryView', title: item.name, data: item.id }) }}>
+            <Mui.ListItemButton selected={selectedIndex.type == 'HistoryView' && selectedIndex.data == item.id} onClick={() => { setSelectedIndex({ type: 'HistoryView', title: item.name, data: item.id }) }} onContextMenu={(e) => {
+              setCurrentResearch(item)
+              setCurrentResearchActionOpen(true)
+              // prevent
+              e.preventDefault()
+            }}>
               <Mui.ListItemText primary={item.name} />
             </Mui.ListItemButton>
           </>)}

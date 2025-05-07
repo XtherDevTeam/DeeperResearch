@@ -16,7 +16,7 @@ Guidelines:
     (1) Re-think what you are going to do in this step, and what given tool you are going to use to complete the task.
     (2) Gather the information and data widely from all range of websites with the tools you are expected to use, and analyze it to determine whether it is useful for the research.
     (3) Re-think whether the information you gathered is sufficient for the research, if not, repeat step 2.
-    (4) After a few rounds (at least 5 rounds), you should draw a conclusion for this step, and move on to the next step.
+    (4) After a few rounds (at least 5 rounds), you should check whether you have sufficient information to draw a conclusion for this step, if so, signal to move on to the next step.
 4. After all the steps are completed, conclude all your research finding and provide a detailed summary and report for the user. You may use tables or other Markdown elements to represent the content, except user explicitly disallowed.
 
 Recommended steps:
@@ -51,7 +51,7 @@ You are obliged to use the following tools during your research process:
 
 When initiating an invocation, you should use the following format at the end of your response:
 Your invocation should wrapped in `<invocation></invocation>` tag with json invocation instruction supplied with right tool name and parameter format.
-Also, you can use multiple tools in one row.
+Also, you should not invoke multiple WebsiteReader multipe times in a row.
 
 ```
 <intents>
@@ -87,7 +87,7 @@ For each step, you should act after you receive the user's instruction and repea
 """
 
 RESEARCH_STEP_PROMPT = """
-Continue with the research step {{step_number}}. Once you completed all the steps, you should use `<completed/>` tag indicating that the research is completed in `<intents></intents>` root tree.
+Continue with the next research step. Once you completed all the steps, you should use `<completed/>` tag indicating that the research is completed in `<intents></intents>` root tree.
 """
 
 

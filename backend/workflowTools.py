@@ -20,6 +20,8 @@ def WebsiteReader(url: str) -> dict[str, list[dict] | str]:
     """
     userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:137.0) Gecko/20100101 Firefox/137.0'
     resp = requests.get(url, headers={'User-Agent': userAgent}, timeout=1240)
+    if resp.status_code != 200:
+        raise Exception(f'Failed to read website {url}. Status code: {resp.status_code}. You may retry later.')
     print(resp)
     content = resp.content
     soup = bs4.BeautifulSoup(content, 'html.parser')

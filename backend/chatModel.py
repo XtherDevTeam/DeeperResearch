@@ -48,7 +48,7 @@ class ChatGoogleGenerativeAI():
                 system_instruction=self.system_prompt,
                 thinking_config=types.ThinkingConfigDict(
                     include_thoughts=self.with_thinking,
-                    thinking_budget=thinking_budget)
+                    thinking_budget=self.thinking_budget)
             )
 
             self.chat_session = self.client.chats.create(
@@ -75,7 +75,10 @@ class ChatGoogleGenerativeAI():
                 # chat with user message
                 if not streamed:
                     resp = self.chat_session.send_message(user_msg)
-                    self.token_count = resp.usage_metadata.total_token_count
+                    self.token_count += resp.usage_metadata.total_token_count
+                    if resp.usage_metadata.total_token_count > 250000:
+                        logger.Logger.log(f'{__name__}: Token count exceeded. Trying lower the frequency of messages by sleeping.')
+                        time.sleep(random.randint(5,30))
                     return resp.text
                 else:
                     return self.chat_session.send_message_stream(user_msg)
