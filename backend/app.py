@@ -121,11 +121,15 @@ def create_research():
     data = flask.request.get_json()
     if 'prompt' not in data:
         return Result(False, 'Invalid request')
-    hid = dataProvider.DataProvider.addResearchHistory('Untitled Research', [])
+    no_history_mode = data.get('no_history_mode', False)
+    if not no_history_mode:
+        hid = dataProvider.DataProvider.addResearchHistory('Untitled Research', [])
+    else:
+        hid = None
     return Result(True,
                   {
                       'id': hid,
-                      'workflow_session': ResearchWorkflowManager.create_workflow(data['prompt'], hid, dataProvider.DataProvider.getConfig()['google_api_key'], dataProvider.DataProvider.getAllEnabledUserScripts(), dataProvider.DataProvider.getAllEnabledExtraInfos())
+                      'workflow_session': ResearchWorkflowManager.create_workflow(data['prompt'], hid, dataProvider.DataProvider.getConfig()['google_api_key'], no_history_mode=no_history_mode, enabled_user_scripts=dataProvider.DataProvider.getAllEnabledUserScripts(), enabled_extra_infos=dataProvider.DataProvider.getAllEnabledExtraInfos())
                   })
 
 
@@ -241,10 +245,11 @@ def route_workflow_new_message(session: str, message: dict[str, typing.Any]) -> 
     if session not in ResearchWorkflowManager.workflows:
         return
     client_sid = ResearchWorkflowManager.get_client_id(session)
-    hid = ResearchWorkflowManager.get_history_id(session)
-    history = dataProvider.DataProvider.getResearchHistory(hid)
-    history['history'].append(message)
-    dataProvider.DataProvider.updateResearchHistory(hid, history['history'])
+    if not ResearchWorkflowManager.get_workflow_by_client_id(client_sid).noHistoryMode:
+        hid = ResearchWorkflowManager.get_history_id(session)
+        history = dataProvider.DataProvider.getResearchHistory(hid)
+        history['history'].append(message)
+        dataProvider.DataProvider.updateResearchHistory(hid, history['history'])
     socket.emit('new_message', message, namespace='/session', to=client_sid)
 
 

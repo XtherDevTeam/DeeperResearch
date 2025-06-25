@@ -82,8 +82,8 @@ function deleteResearchHistory(id) {
   })
 }
 
-function createResearch(prompt) {
-  return axios.post(`${serverUrl}/api/v1/research/create`, { prompt }).then(r => {
+function createResearch(prompt, no_history_mode = false) {
+  return axios.post(`${serverUrl}/api/v1/research/create`, { prompt, no_history_mode }).then(r => {
     return r.data
   })
 }

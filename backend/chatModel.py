@@ -27,8 +27,16 @@ class ChatGoogleGenerativeAI():
         chat_session (genai.ChatSession | None): The active chat session.
     """
 
-    def __init__(self, model: str, with_thinking: bool = False, thinking_budget: int = 8192, temperature: float = 0.9, safety_settings: Any = None, system_prompt: str | None = None, tools: list[typing.Any] = [], api_key: str = None) -> None:
-        self.client = genai.Client(api_key=api_key)
+    def __init__(self, model: str, with_thinking: bool = False, thinking_budget: int = 8192, temperature: float = 0.9, safety_settings: Any = None, system_prompt: str | None = None, tools: list[typing.Any] = [], api_key: str = None, api_key_pool: list[str] = []) -> None:
+        if api_key:
+            self.client = genai.Client(api_key=api_key)
+            self.api_key_mode = "single"
+        else:
+            self.api_key_mode = "pool"
+            self.api_key_pool = api_key_pool
+            self.api_key_current = 0
+            self.client = genai.Client(api_key=self.api_key_pool[self.api_key_current])
+
         self.model_name = model
         self.temperature = temperature
         self.safety_settings = safety_settings
@@ -38,6 +46,24 @@ class ChatGoogleGenerativeAI():
         self.with_thinking = with_thinking
         self.token_count = 0
         self.thinking_budget = thinking_budget
+        self.saved_chat_history = []
+        
+    def switch_api_key(self) -> None:
+        if self.api_key_mode == "single":
+            # raise ValueError(f'{__name__}: API key mode is set to single. Cannot switch API key.')
+            # ignore the behaviour
+            logger.Logger.log(f'{__name__}: API key mode is set to single. Cannot switch API key.')
+            return
+        
+        self.api_key_current = (self.api_key_current + 1) % len(self.api_key_pool)
+        self.client = genai.Client(api_key=self.api_key_pool[self.api_key_current])
+        logger.Logger.log(f'{__name__}: Switched to API key {self.api_key_pool[self.api_key_current]}')
+        # re-initiate the chat session
+        self.chat_session = self.client.chats.create(
+            model=self.model_name,
+            config=self.initiate_chat_config,
+            history=self.chat_session.get_history() if self.chat_session is not None else None
+        )
 
     def initiate(self, begin_msg: list[dict[str, str]], streamed: bool = False) -> str | types.GenerateContentResponse | typing.Iterator[types.GenerateContentResponse]:
         if self.chat_session is None:
@@ -50,6 +76,7 @@ class ChatGoogleGenerativeAI():
                     include_thoughts=self.with_thinking,
                     thinking_budget=self.thinking_budget)
             )
+            self.initiate_chat_config = chat_config
 
             self.chat_session = self.client.chats.create(
                 model=self.model_name,
@@ -71,7 +98,10 @@ class ChatGoogleGenerativeAI():
 
         current_attempt = 0
         while current_attempt <= retryAttempts:
-            try:        
+            try:
+                if self.api_key_mode == "pool":
+                    self.switch_api_key()
+                    
                 # chat with user message
                 if not streamed:
                     resp = self.chat_session.send_message(user_msg)

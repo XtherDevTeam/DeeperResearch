@@ -2,6 +2,7 @@ import chatModel
 import requests
 import bs4
 import googleapiclient.discovery
+import tools
 import urllib.parse
 import typing
 import dataProvider
@@ -19,12 +20,24 @@ def WebsiteReader(url: str) -> dict[str, list[dict] | str]:
         For key `content`, the value is the text content of the website. For key `links`, the value is a list of dictionaries
     """
     userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:137.0) Gecko/20100101 Firefox/137.0'
-    resp = requests.get(url, headers={'User-Agent': userAgent}, timeout=1240)
-    if resp.status_code != 200:
-        raise Exception(f'Failed to read website {url}. Status code: {resp.status_code}. You may retry later.')
+    
+    def get_website_content(url: str) -> bytes:
+        resp = requests.get(url, headers={'User-Agent': userAgent}, timeout=1240)
+        if resp.status_code != 200:
+            raise Exception(f'Failed to read website {url}. Status code: {resp.status_code}. You may retry later.')
+        return resp
+    
+    resp = tools.retryWrapper(lambda: get_website_content(url), max_retries=5, retry_interval=1)
+    
     print(resp)
     content = resp.content
     soup = bs4.BeautifulSoup(content, 'html.parser')
+    if 'fandom.com' in url:
+        # get the .page section of the fandom page
+        page_soup = soup.find('div', class_='page')
+        if page_soup:
+            soup = page_soup
+
     all_text = soup.get_text()
 
     gathered_links = []

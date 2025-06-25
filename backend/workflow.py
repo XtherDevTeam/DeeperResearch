@@ -14,7 +14,7 @@ from userScript import UserScript
 
 
 class ResearchWorkflow():
-    def __init__(self, prompt: str, enabled_tools: list[typing.Callable] = workflowTools.AvailableTools(), enabledUserScripts: list[dict[str, str]] = [], enabledExtraInfos: list[dict[str, str]] = [], api_key: str = None) -> None:
+    def __init__(self, prompt: str, noHistoryMode: typing.Optional[bool] = False, enabled_tools: list[typing.Callable] = workflowTools.AvailableTools(), enabledUserScripts: list[dict[str, str]] = [], enabledExtraInfos: list[dict[str, str]] = [], api_key: str = None) -> None:
         """
         Initiate a deep research workflow with a given prompt and enabled tools.
 
@@ -25,6 +25,7 @@ class ResearchWorkflow():
         """
         self.initiate_prompt = prompt
         self.parsed_user_scripts: list[UserScript] = []
+        self.noHistoryMode = noHistoryMode
         for i in enabledUserScripts:
             name, content = i['name'], i['content']
             self.parsed_user_scripts.append(UserScript(name, content))
@@ -46,8 +47,9 @@ class ResearchWorkflow():
             'extra_infos': self.parsed_extra_infos,
         })
         logger.Logger.log(self.system_prompt)
+        api_keys = api_key.split(';')
         self.llm = chatModel.ChatGoogleGenerativeAI(
-            dataProvider.DataProvider.getConfig()["deep_research_model"], thinking_budget=int(dataProvider.DataProvider.getConfig()["thinking_token_budget"]), system_prompt=self.system_prompt, api_key=api_key)
+            dataProvider.DataProvider.getConfig()["deep_research_model"], thinking_budget=int(dataProvider.DataProvider.getConfig()["thinking_token_budget"]), system_prompt=self.system_prompt, api_key_pool=api_keys)
         self.history = []
         self.hooks = {
             "research_initiated": [],
@@ -476,11 +478,11 @@ class _ResearchWorkflowManager():
         for event_handler in self.registered_event[event_name]:
             event_handler(*args, **kwargs)
 
-    def create_workflow(self, prompt: str, history_id: int, api_key: str, enabled_user_scripts: list[dict[str, str]] = [], enabled_extra_infos: list[dict[str, str]] = []) -> str:
+    def create_workflow(self, prompt: str, history_id: int, api_key: str, no_history_mode: typing.Optional[bool] = False, enabled_user_scripts: list[dict[str, str]] = [], enabled_extra_infos: list[dict[str, str]] = []) -> str:
         session = uuid.uuid4().hex
         self.workflows[session] = {
             'title': "",
-            'workflow': ResearchWorkflow(prompt, api_key=api_key, enabledUserScripts=enabled_user_scripts, enabledExtraInfos=enabled_extra_infos),
+            'workflow': ResearchWorkflow(prompt, api_key=api_key, noHistoryMode=no_history_mode, enabledUserScripts=enabled_user_scripts, enabledExtraInfos=enabled_extra_infos),
             'created_at': time.time(),
             'history_id': history_id,
             'client_id': None,
