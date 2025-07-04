@@ -10,16 +10,17 @@ import dataProvider
 import logger
 import subprocess
 import sys
-
+import importlib
 
 class ToolResponse:
     def __init__(self, content: typing.Any, type: str = 'text/plain'):
         self.response_content = content
+        self.type = type
         
     def asModelInput(self):
-        if type in ['text/plain', 'list', 'dict']:
+        if self.type in ['text/plain', 'list', 'dict']:
             return str(self.response_content)
-        elif type.startswith('image/') or type.startswith('video/') or type.startswith('audio/'):
+        elif self.type.startswith('image/') or self.type.startswith('video/') or self.type.startswith('audio/'):
             if isinstance(self.response_content, str):
                 self.response_content = pathlib.Path(self.response_content).read_bytes()
                 
@@ -32,18 +33,18 @@ class ToolResponse:
         
     
     def asReadableObject(self) -> dict | str:
-        if type.startswith('image/') or type.startswith('video/') or type.startswith('audio/'):
+        if self.type.startswith('image/') or self.type.startswith('video/') or self.type.startswith('audio/'):
             return {
                 'type': 'attachment',
-                'mime_type': type,
+                'mime_type': self.type,
             }
-        elif type in ['text/plain', 'list', 'dict']:
+        elif self.type in ['text/plain', 'list', 'dict']:
             return self.response_content
         else:
             return {
                 'type': 'unknown',
                 'content': str(self.response_content),
-                'mime_type': type,
+                'mime_type': self.type,
             }
             
             
@@ -255,11 +256,12 @@ def GetToolReadableDescription(tool: typing.Callable) -> str:
 
 def loadOrReportMissingImport(module_name: str, version: str = '*') -> None:
     try:
-        __import__(module_name)
+        return importlib.import_module(module_name)
     except ImportError:
         res = input(f'Missing import: {module_name}, do you wish to run `pip install {module_name}`? (y/n)')
         if res.lower() == 'y':
             subprocess.run([sys.executable, "-m", "pip", "install", f"{module_name}=={version}" if version != '*' else module_name])
+            return importlib.import_module(module_name)
         elif res.lower() == 'n':
             print(f'Skipping import {module_name}, this may cause some features to be unavailable.')
         else:

@@ -11,9 +11,16 @@ import typing
 import prompts
 import json
 from userScript import UserScript
+from workflowTools import ToolResponse
 
 
 class ResearchWorkflow():
+    class JSONEncoder(json.JSONEncoder):
+        def default(self, obj: typing.Any) -> typing.Any:
+            if isinstance(obj, ToolResponse):
+                return obj.asReadableObject()
+            return super().default(obj)
+
     def __init__(self, prompt: str, noHistoryMode: typing.Optional[bool] = False, enabled_tools: list[typing.Callable] = workflowTools.AvailableTools(), enabledUserScripts: list[dict[str, str]] = [], enabledExtraInfos: list[dict[str, str]] = [], api_key: str = None) -> None:
         """
         Initiate a deep research workflow with a given prompt and enabled tools.
@@ -91,7 +98,7 @@ class ResearchWorkflow():
             for hook in self.hooks[hook_name]:
                 hook(*args, **kwargs)
 
-    def append_system_history(self, msg: str | list[dict[str, str]] | dict[str, str]) -> None:
+    def append_system_history(self, msg: str | list[dict[str, str]] | dict[str, str] | list[ToolResponse]) -> None:
         """
         Append a system message to the history.
 
@@ -105,11 +112,12 @@ class ResearchWorkflow():
                 "content": msg,
                 "content_type": "text",
             })
-        else:
+        elif isinstance(msg, list) or isinstance(msg, dict):
+
             logger.Logger.log(f'Appending system message...')
             self.history.append({
                 "role": "system",
-                "content": msg,
+                "content": json.loads(json.dumps(msg, cls=ResearchWorkflow.JSONEncoder)),
                 "content_type": "json",
             })
         self.trigger_hook("new_message", self.history[-1])
@@ -302,7 +310,7 @@ class ResearchWorkflow():
         while True:
             self.append_system_history(prompt)
             result = self.llm.chat(prompt if isinstance(
-                prompt, str) else json.dumps(prompt))
+                prompt, str) else json.dumps(prompt, cls=ResearchWorkflow.JSONEncoder))
             parsed_result = self.parseResponse(result)
             if 'intents' in parsed_result:
                 intent_result = []
@@ -340,7 +348,7 @@ class ResearchWorkflow():
         while True:
             self.append_system_history(prompt)
             result = self.llm.chat(prompt if isinstance(
-                prompt, str) else json.dumps(prompt))
+                prompt, str) else json.dumps(prompt, cls=ResearchWorkflow.JSONEncoder))
             parsed_result = self.parseResponse(result)
             if 'intents' in parsed_result:
                 intent_result = []
