@@ -26,20 +26,32 @@ class ResearchWorkflow():
         self.initiate_prompt = prompt
         self.parsed_user_scripts: list[UserScript] = []
         self.noHistoryMode = noHistoryMode
+
+        self.generated_tool_descriptions = ''.join(
+            [workflowTools.GetToolReadableDescription(i) for i in enabled_tools])
+
+        self.enabled_user_script_tool_mapping = {}
+
         for i in enabledUserScripts:
             name, content = i['name'], i['content']
-            self.parsed_user_scripts.append(UserScript(name, content))
+            script = UserScript(name, content)
+            self.parsed_user_scripts.append(script)
 
-        enabled_tools.extend(i.getFunc() for i in self.parsed_user_scripts)
+            for tool in script.getAllInvocables():
+                self.enabled_user_script_tool_mapping[tool] = script.getInvocable(
+                    tool)
+
+            self.generated_tool_descriptions += script.getReadableInformation()
+
+        logger.Logger.log(f'Enabled user scripts: {self.parsed_user_scripts}')
+        logger.Logger.log(
+            f'Enabled user script tool mapping: {self.enabled_user_script_tool_mapping}')
 
         self.parsed_extra_infos = '\n'.join(f'''\
 # {i['name']}
 
 {i['content']}
 ''' for i in enabledExtraInfos)
-
-        self.generated_tool_descriptions = ''.join(
-            [workflowTools.GetToolReadableDescription(i) for i in enabled_tools])
 
         self.system_prompt = prompts.Prompt(prompts.SYSTEM_PROMPT, {
             "initiate_prompt": prompt,
@@ -232,31 +244,30 @@ class ResearchWorkflow():
         """
         match intent:
             case "invocation":
-                if args.get('tool') in self.enabled_tools_mapping:
-                    params = args.get('params', {})
-                    try:
+                params = args.get('params', {})
+                try:
+                    if args['tool'] in self.enabled_tools_mapping:
                         invocation_result = self.enabled_tools_mapping[args['tool']](
                             **params)
-                    except Exception as e:
+                    elif args['tool'] in self.enabled_user_script_tool_mapping:
+                        invocation_result = self.enabled_user_script_tool_mapping[args['tool']](
+                            **params)
+                    else:
                         invocation_result = {
                             "status": "failed",
-                            "message": f"Failed to invoke tool: {e}",
+                            "message": f"Invalid tool: {args['tool']}, available tools are: {list(self.enabled_tools_mapping.keys()) + list(self.enabled_user_script_tool_mapping.keys())}",
                         }
-                    logger.Logger.log(
-                        f'Handling intent {intent} with params {params} and result {invocation_result}')
-                    return {
-                        "invocation": args,
-                        "result": invocation_result,
+                except Exception as e:
+                    invocation_result = {
+                        "status": "failed",
+                        "message": f"Failed to invoke tool: {e}",
                     }
-                else:
-                    logger.Logger.log(f'Invalid tool: {args["tool"]}')
-                    return {
-                        "invocation": args,
-                        "result": {
-                            "status": "failed",
-                            "message": f"Invalid tool: {args['tool']}",
-                        }
-                    }
+                logger.Logger.log(
+                    f'Handling intent {intent} with params {params} and result {invocation_result}')
+                return {
+                    "invocation": args,
+                    "result": invocation_result,
+                }
             case "completed":
                 # invoke hook
                 logger.Logger.log(f'Handling intent {intent}')
@@ -304,7 +315,9 @@ class ResearchWorkflow():
                 self.append_bot_history(parsed_result)
                 if intent_result:
                     # supply to llm again for further processing
-                    prompt = intent_result
+                    res = [r.asModelInput() if isinstance(
+                        r, workflowTools.ToolResponse) else r for r in intent_result]
+                    prompt = res
                 else:
                     # no intents found, end of research
                     break
@@ -340,7 +353,9 @@ class ResearchWorkflow():
                 self.append_bot_history(parsed_result)
                 if intent_result:
                     # supply to llm again for further processing
-                    prompt = intent_result
+                    res = [r.asModelInput() if isinstance(
+                        r, workflowTools.ToolResponse) else r for r in intent_result]
+                    prompt = res
                 else:
                     # no intents found, end of research
                     break
@@ -381,7 +396,9 @@ class ResearchWorkflow():
                 self.append_bot_history(parsed_result)
                 if intent_result:
                     # supply to llm again for further processing
-                    prompt = intent_result
+                    res = [r.asModelInput() if isinstance(
+                        r, workflowTools.ToolResponse) else r for r in intent_result]
+                    prompt = res
                 else:
                     # no intents found, end of research
                     break

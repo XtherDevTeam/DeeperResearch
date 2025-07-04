@@ -1,4 +1,5 @@
 import chatModel
+import pathlib
 import requests
 import bs4
 import googleapiclient.discovery
@@ -6,6 +7,64 @@ import tools
 import urllib.parse
 import typing
 import dataProvider
+import logger
+import subprocess
+import sys
+
+
+class ToolResponse:
+    def __init__(self, content: typing.Any, type: str = 'text/plain'):
+        self.response_content = content
+        
+    def asModelInput(self):
+        if type in ['text/plain', 'list', 'dict']:
+            return str(self.response_content)
+        elif type.startswith('image/') or type.startswith('video/') or type.startswith('audio/'):
+            if isinstance(self.response_content, str):
+                self.response_content = pathlib.Path(self.response_content).read_bytes()
+                
+            return {
+                'mime_type': type,
+                'data': self.response_content,
+            }
+        elif type in ['gemini/file-object']:
+            return self.response_content
+        
+    
+    def asReadableObject(self) -> dict | str:
+        if type.startswith('image/') or type.startswith('video/') or type.startswith('audio/'):
+            return {
+                'type': 'attachment',
+                'mime_type': type,
+            }
+        elif type in ['text/plain', 'list', 'dict']:
+            return self.response_content
+        else:
+            return {
+                'type': 'unknown',
+                'content': str(self.response_content),
+                'mime_type': type,
+            }
+            
+            
+    def __str__(self):
+        return f'ToolResponse(type={self.type}, content={self.asReadableObject()})'
+        
+        
+class TextResponse(ToolResponse):
+    def __init__(self, content: str):
+        super().__init__(content, 'text/plain')
+
+
+class ImageResponse(ToolResponse):
+    def __init__(self, content: bytes, mime: str = 'image/jpeg'):
+        super().__init__(content, mime)
+
+
+class AudioResponse(ToolResponse):
+    def __init__(self, content: bytes, mime: str = 'audio/mpeg'):
+        super().__init__(content, mime)
+            
 
 
 def WebsiteReader(url: str) -> dict[str, list[dict] | str]:
@@ -61,10 +120,10 @@ def WebsiteReader(url: str) -> dict[str, list[dict] | str]:
                 # ignore relative links
                 pass
 
-    return {
+    return TextResponse({
         'content': all_text,
         'links': gathered_links,
-    }
+    })
 
 
 def SearchEngine(query: str, page: int = 1) -> list[dict[str, str]]:
@@ -95,7 +154,7 @@ def SearchEngine(query: str, page: int = 1) -> list[dict[str, str]]:
         link = item['link']
         snippet = item['snippet']
         results.append({'title': title, 'link': link, 'snippet': snippet})
-    return results
+    return TextResponse(results)
 
 
 def AvailableTools() -> list[typing.Callable]:
@@ -193,3 +252,15 @@ def GetToolReadableDescription(tool: typing.Callable) -> str:
     desc += f'**Description**: {description["description"]}\n\n'
     desc += '\n'
     return desc
+
+def loadOrReportMissingImport(module_name: str, version: str = '*') -> None:
+    try:
+        __import__(module_name)
+    except ImportError:
+        res = input(f'Missing import: {module_name}, do you wish to run `pip install {module_name}`? (y/n)')
+        if res.lower() == 'y':
+            subprocess.run([sys.executable, "-m", "pip", "install", f"{module_name}=={version}" if version != '*' else module_name])
+        elif res.lower() == 'n':
+            print(f'Skipping import {module_name}, this may cause some features to be unavailable.')
+        else:
+            print(f'Invalid input: {res}. Skipping import {module_name}.')

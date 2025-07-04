@@ -200,9 +200,9 @@ def create_user_script():
     if not check_if_authenticated():
         return Result(False, 'Not authenticated')
     data = flask.request.get_json()
-    if 'name' not in data or 'content' not in data or 'enabled' not in data:
+    if 'name' not in data or 'content' not in data or 'enabled' not in data or 'author' not in data or 'description' not in data:
         return Result(False, 'Invalid request')
-    us_id = dataProvider.DataProvider.createUserScript(data['name'], data['content'], data['enabled'])
+    us_id = dataProvider.DataProvider.createUserScript(data['name'], data['author'], data['description'], data['content'], data['enabled'])
     return Result(True, us_id)
 
 
@@ -234,9 +234,9 @@ def update_user_script():
     if not check_if_authenticated():
         return Result(False, 'Not authenticated')
     data = flask.request.get_json()
-    if 'id' not in data or 'name' not in data or 'content' not in data or 'enabled' not in data:
+    if 'id' not in data or 'name' not in data or 'content' not in data or 'enabled' not in data or 'author' not in data or 'description' not in data:
         return Result(False, 'Invalid request')
-    dataProvider.DataProvider.updateUserScript(data['id'], data['name'], data['content'], data['enabled'])
+    dataProvider.DataProvider.updateUserScript(data['id'], data['name'], data['content'], data['author'], data['description'], data['enabled'])
     return Result(True, 'success')
 
 

@@ -263,18 +263,20 @@ class _DataProvider:
         self.db.query("delete from extra_infos where id = ?", (id,))
         return self.getExtraInfoList()
 
-    def createUserScript(self, name: str, content: str, enabled: bool = True):
+    def createUserScript(self, name: str, author: str, description: str, content: str, enabled: bool = True):
         """
         Create a user script in database.
 
         Args:
             name (str): Name of the user script.
+            author (str): Author of the user script.
+            description (str): Description of the user script.
             content (str): Content of the user script.
             enabled (bool, optional): Whether the user script is enabled. Defaults to True.
         """
 
-        self.db.query("insert into user_scripts (name, content, enabled) values (?,?,?)",
-                      (name, content, enabled))
+        self.db.query("insert into user_scripts (name, author, description, content, enabled) values (?,?,?,?,?)",
+                      (name, author, description, content, enabled))
         return self.db.query("select last_insert_rowid()")[0]['last_insert_rowid()']
 
     def getUserScript(self, id: int) -> dict[str, str]:
@@ -300,9 +302,9 @@ class _DataProvider:
         Returns:
             list[dict[str, str]]: List of user script.
         """
-        return self.db.query("select name, enabled, id, content from user_scripts")
+        return self.db.query("select name, enabled, id, content, description, author from user_scripts")
 
-    def updateUserScript(self, id: int, name: str, content: str, enabled: bool):
+    def updateUserScript(self, id: int, name: str, content: str, author: str, description: str, enabled: bool):
         """
         Update a user script in database.
 
@@ -312,8 +314,8 @@ class _DataProvider:
             content (str): Content of the user script.
             enabled (bool): Whether the user script is enabled.
         """
-        self.db.query("update user_scripts set name = ?, content = ?, enabled = ? where id = ?",
-                      (name, content, enabled, id))
+        self.db.query("update user_scripts set name = ?, content = ?, author = ?, description = ?, enabled = ? where id = ?",
+                      (name, content, author, description, enabled, id))
         return self.db.query("select last_insert_rowid()")[0]['last_insert_rowid()']
 
     def deleteUserScript(self, id: int):
