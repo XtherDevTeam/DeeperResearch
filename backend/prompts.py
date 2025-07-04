@@ -71,7 +71,7 @@ Your research process will follow these phases:
     </intents>
     
     <intents>
-        <suggessted_title>Your suggested title for the research</suggessted_title>
+        <suggested_title>Your suggested title for the research</suggested_title>
     </intents>
     ```
 
