@@ -6,12 +6,17 @@ import Api from '../Api';
 
 function EditGenerationConfigDialog({ open, onClose, config, setConfig }) {
   const [noHistoryMode, setNoHistoryMode] = React.useState(config?.no_history_mode);
-  const [useModel, setUseModel] = React.useState(config?.use_model);
+  const [autoNextStep, setAutoNextStep] = React.useState(config?.auto_next_step);
+
+  React.useEffect(() => {
+    setNoHistoryMode(config?.no_history_mode);
+    setAutoNextStep(config?.auto_next_step);
+  }, [config]);
 
   return <Mui.Dialog open={open} onClose={onClose}>
     <Mui.DialogTitle>Edit Generation Config</Mui.DialogTitle>
     <Mui.DialogContent>
-      <Mui.Grid container spacing={2} sx={{ marginTop: 5 }}>
+      <Mui.Grid container spacing={2}>
         <Mui.Grid item xs={12}>
           <Mui.FormControlLabel
             control={
@@ -24,17 +29,21 @@ function EditGenerationConfigDialog({ open, onClose, config, setConfig }) {
             }
             label="No History Mode"
           />
+          <Mui.Typography variant="body2" sx={{ color: 'text.secondary' }}>Whether to save the research history automatically when conducting the research.</Mui.Typography>
         </Mui.Grid>
         <Mui.Grid item xs={12}>
-          <Mui.TextField
-            label="Model"
-            variant="filled"
-            value={useModel}
-            fullWidth
-            onChange={(e) => {
-              setUseModel(e.target.value);
-            }}
+          <Mui.FormControlLabel
+            control={
+              <Mui.Checkbox
+                checked={autoNextStep}
+                onChange={(e) => {
+                  setAutoNextStep(e.target.checked);
+                }}
+              />
+            }
+            label="Auto Next Step"
           />
+          <Mui.Typography variant="body2" sx={{ color: 'text.secondary' }}>Whether to automatically move to the next step when the current step is finished.</Mui.Typography>
         </Mui.Grid>
       </Mui.Grid>
     </Mui.DialogContent>
@@ -43,7 +52,7 @@ function EditGenerationConfigDialog({ open, onClose, config, setConfig }) {
       <Mui.Button onClick={() => {
         setConfig({
           no_history_mode: noHistoryMode,
-          use_model: useModel,
+          auto_next_step: autoNextStep
         });
         onClose();
       }}>Save</Mui.Button>
@@ -77,6 +86,22 @@ function CreateResearch({ setTitle }) {
   const [messageTitle, setMessageTitle] = React.useState(null);
   const [messageContent, setMessageContent] = React.useState(null);
   const [messageType, setMessageType] = React.useState(null);
+
+  React.useEffect(() => {
+    // serialize generationConfig
+    if (generationConfig) {
+      const serializedConfig = JSON.stringify(generationConfig);
+      console.log('serializedConfig', serializedConfig);
+      localStorage.setItem('generationConfig', serializedConfig);
+    }
+  }, [generationConfig]);
+
+  React.useEffect(() => {
+    const serializedConfig = localStorage.getItem('generationConfig');
+    if (serializedConfig) {
+      setGenerationConfig(JSON.parse(serializedConfig));
+    }
+  }, []);
 
   const handleInputEvent = React.useCallback((str) => {
     setInputEvent({
@@ -140,7 +165,7 @@ function CreateResearch({ setTitle }) {
       setMessageOpen(true);
     }} ref={scrollableRef} onUpdateTokenCount={(count) => {
       setTokenCount(count);
-    }} />}
+    }} autoNextStep={generationConfig?.auto_next_step || false} />}
     {/* Text Area Fixed */}
     <Mui.Box sx={{
       position: 'fixed',

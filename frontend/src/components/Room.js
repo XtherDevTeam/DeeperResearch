@@ -11,7 +11,7 @@ import theme from '../theme';
 import MessageRendered from './MessageRendered';
 
 
-const Room = React.forwardRef(({ token, connect, inputEvent, onErr, onTitle, onUpdateTokenCount, sx }, ref) => {
+const Room = React.forwardRef(({ token, connect, inputEvent, onErr, onTitle, onUpdateTokenCount, sx, autoNextStep }, ref) => {
   const room = React.useRef(null)
   const [title, setTitle] = React.useState(null)
   const [researchCompleted, setResearchCompleted] = React.useState(false)
@@ -37,6 +37,12 @@ const Room = React.forwardRef(({ token, connect, inputEvent, onErr, onTitle, onU
   React.useEffect(() => {
     console.log('rendering messages', messagesRef.current, messagesRendered)
   }, [messagesRendered])
+
+  React.useEffect(() => {
+    if (room.current && readyToNextStep && autoNextStep) {
+      room.current.next_step()
+    }
+  }, [readyToNextStep, autoNextStep])
 
   React.useEffect(() => {
     if (inputEvent && inputEvent.content && room.current) {
