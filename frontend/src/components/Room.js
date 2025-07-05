@@ -39,8 +39,13 @@ const Room = React.forwardRef(({ token, connect, inputEvent, onErr, onTitle, onU
   }, [messagesRendered])
 
   React.useEffect(() => {
-    if (room.current && readyToNextStep && autoNextStep) {
-      room.current.next_step()
+    if (room.current && readyToNextStep) {
+      console.log(`ready to next step with autoNextStep state: ${autoNextStep}`)
+      if (autoNextStep) {
+        console.log('automatically proceeding to next step')
+        room.current.next_step()
+        setReadyToNextStep(false)
+      }
     }
   }, [readyToNextStep, autoNextStep])
 

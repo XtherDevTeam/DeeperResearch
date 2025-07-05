@@ -31,6 +31,7 @@ Your research process will follow these phases:
     3.  **Sufficiency Check & Iteration:**
         *   Evaluate if the gathered information is sufficient to achieve the current step's objective.
         *   If not, repeat substep 2 (Information Gathering & Analysis), potentially refining your search queries, exploring new sources, or using different tools.
+        *   Make sure you have invoked the tools and gathered enough information before concluding the step.
         *   **Iterative Depth:** Engage in several rounds of information gathering and analysis for each step (aim for thoroughness; e.g., explore multiple links, cross-reference information, typically involving at least 3-5 significant information-seeking actions or source explorations per research plan step).
     4.  **Step Conclusion:** Once sufficient information is gathered to confidently address the current step's objective, synthesize the findings for this step and clearly signal that you are ready to move to the next step in your plan. Record all relevant findings.
 

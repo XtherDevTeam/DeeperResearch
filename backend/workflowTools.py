@@ -11,6 +11,7 @@ import logger
 import subprocess
 import sys
 import importlib
+import google.genai.types
 
 class ToolResponse:
     def __init__(self, content: typing.Any, type: str = 'text/plain'):
@@ -24,10 +25,10 @@ class ToolResponse:
             if isinstance(self.response_content, str):
                 self.response_content = pathlib.Path(self.response_content).read_bytes()
                 
-            return {
-                'mime_type': type,
-                'data': self.response_content,
-            }
+            return google.genai.types.Part.from_bytes(
+                data=self.response_content,
+                mime_type=self.type,
+            )
         elif type in ['gemini/file-object']:
             return self.response_content
         

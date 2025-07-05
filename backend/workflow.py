@@ -308,9 +308,14 @@ class ResearchWorkflow():
         prompt = prompts.Prompt(prompts.BEGIN_RESEARCH_PROMPT)
 
         while True:
-            self.append_system_history(prompt)
-            result = self.llm.chat(prompt if isinstance(
-                prompt, str) else json.dumps(prompt, cls=ResearchWorkflow.JSONEncoder))
+            self.append_system_history(prompt if isinstance(prompt, str) else [r.asReadableObject() if isinstance(
+                        r, workflowTools.ToolResponse) else r for r in prompt])
+            
+            print([r.asModelInput() if isinstance(
+                        r, workflowTools.ToolResponse) else r for r in prompt])
+            
+            result = self.llm.chat(prompt if isinstance(prompt, str) else [r.asModelInput() if isinstance(
+                        r, workflowTools.ToolResponse) else str(r) for r in prompt])
             parsed_result = self.parseResponse(result)
             if 'intents' in parsed_result:
                 intent_result = []
@@ -323,8 +328,7 @@ class ResearchWorkflow():
                 self.append_bot_history(parsed_result)
                 if intent_result:
                     # supply to llm again for further processing
-                    res = [r.asModelInput() if isinstance(
-                        r, workflowTools.ToolResponse) else r for r in intent_result]
+                    res = intent_result
                     prompt = res
                 else:
                     # no intents found, end of research
@@ -346,9 +350,14 @@ class ResearchWorkflow():
         })
 
         while True:
-            self.append_system_history(prompt)
-            result = self.llm.chat(prompt if isinstance(
-                prompt, str) else json.dumps(prompt, cls=ResearchWorkflow.JSONEncoder))
+            self.append_system_history(prompt if isinstance(prompt, str) else [r.asReadableObject() if isinstance(
+                        r, workflowTools.ToolResponse) else r for r in prompt])
+            
+            print([r.asModelInput() if isinstance(
+                        r, workflowTools.ToolResponse) else r for r in prompt])
+            
+            result = self.llm.chat(prompt if isinstance(prompt, str) else [r.asModelInput() if isinstance(
+                        r, workflowTools.ToolResponse) else str(r) for r in prompt])
             parsed_result = self.parseResponse(result)
             if 'intents' in parsed_result:
                 intent_result = []
@@ -356,13 +365,12 @@ class ResearchWorkflow():
                     response = self.handleIntent(
                         i['name'], i['content'])
                     if response:
-                        intent_result.append(response)
+                        intent_result.append(response['result'])
 
                 self.append_bot_history(parsed_result)
                 if intent_result:
                     # supply to llm again for further processing
-                    res = [r.asModelInput() if isinstance(
-                        r, workflowTools.ToolResponse) else r for r in intent_result]
+                    res = intent_result
                     prompt = res
                 else:
                     # no intents found, end of research
@@ -389,9 +397,11 @@ class ResearchWorkflow():
                 self.append_user_history(prompt)
                 first = False
             else:
-                self.append_system_history(prompt)
-            result = self.llm.chat(prompt if isinstance(
-                prompt, str) else json.dumps(prompt))
+                self.append_system_history(prompt if isinstance(prompt, str) else [r.asReadableObject() if isinstance(
+                        r, workflowTools.ToolResponse) else r for r in prompt])
+                
+            result = self.llm.chat(prompt if isinstance(prompt, str) else [r.asModelInput() if isinstance(
+                        r, workflowTools.ToolResponse) else str(r) for r in prompt])
             parsed_result = self.parseResponse(result)
             if 'intents' in parsed_result:
                 intent_result = []
@@ -399,13 +409,12 @@ class ResearchWorkflow():
                     response = self.handleIntent(
                         i['name'], i['content'])
                     if response:
-                        intent_result.append(response)
+                        intent_result.append(response['result'])
 
                 self.append_bot_history(parsed_result)
                 if intent_result:
                     # supply to llm again for further processing
-                    res = [r.asModelInput() if isinstance(
-                        r, workflowTools.ToolResponse) else r for r in intent_result]
+                    res = intent_result
                     prompt = res
                 else:
                     # no intents found, end of research

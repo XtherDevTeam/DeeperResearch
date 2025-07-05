@@ -7,38 +7,46 @@ import numpy
 import PIL.Image
 import PIL.ImageDraw
 import io
+import mss
 
-mss = workflowTools.loadOrReportMissingImport('mss')
-
+# mss = workflowTools.loadOrReportMissingImport('mss')
+sct = mss.mss()
+sct.with_cursor = True  # Capture the mouse cursor in the screenshot
 pynput = workflowTools.loadOrReportMissingImport('pynput')
+mouse = pynput.mouse.Controller()
+keyboard = pynput.keyboard.Controller()
+
 
 def grabScreenContent() -> ImageResponse:
     """
-    Captures the current screen content.
+    Captures the entire virtual screen content, encompassing all monitors.
 
     Returns:
         ImageResponse: The captured screen content as an image response.
     """
-    with mss.mss() as sct:
-        image = sct.grab(sct.monitors[-1]) # whole image
-        # convert captured image to ndarray as captured_image
-        captured_image = numpy.array(image)
-        bytearray_image = io.BytesIO()
-        PIL.Image.fromarray(captured_image).save(bytearray_image, format='JPG')
-        return ImageResponse(bytearray_image.getvalue())
+
+    sct_img = sct.grab(sct.monitors[0])
+
+    img = PIL.Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+
+    bytearray_image = io.BytesIO()
+    img.save(bytearray_image, format='JPEG')
+    pathlib.Path('screenshot.jpg').write_bytes(bytearray_image.getvalue())
+    return ImageResponse(bytearray_image.getvalue())
+
 
 def mouseMove(x: int, y: int) -> TextResponse:
     """
-    Moves the mouse cursor to the specified position.
+    Moves the mouse cursor to the specified relative position on the virtual screen.
 
     Args:
-        x (int): The x coordinate of the desired position in relative screen coordinates.
-        y (int): The y coordinate of the desired position in relative screen coordinates.
+        x (int): The relative x coordinate on the virtual screen.
+        y (int): The relative y coordinate on the virtual screen.
     """
 
-    mouse = pynput.mouse.Controller()
     mouse.move(x, y)
-    return TextResponse(f"Mouse moved to ({x}, {y})")
+    return TextResponse(f"Mouse moved to relative position ({x}, {y})")
+
 
 def mouseClick(key: str = 'left') -> TextResponse:
     """
@@ -47,62 +55,80 @@ def mouseClick(key: str = 'left') -> TextResponse:
     Args:
         key (str, optional): The mouse button to click. Defaults to 'left'. Available options are 'left', 'right', and 'middle'.
     """
-    mouse = pynput.mouse.Controller()
-    # mapping key to Button.xxx
     button = {
         'left': pynput.mouse.Button.left,
         'right': pynput.mouse.Button.right,
         'middle': pynput.mouse.Button.middle
     }.get(key, pynput.mouse.Button.left)
-    mouse.click(button=button)
+    mouse.click(button)
     return TextResponse(f"Mouse clicked {key}")
+
 
 def mousePosition() -> ImageResponse:
     """
-    This function retrieves the current position of the mouse cursor as a tuple (x, y).
+    Captures the screen and highlights the current mouse position with a 50px red box.
+    This works correctly across multiple monitors.
 
     Returns:
-        ImageResponse: The current mouse position highlighted with a 50px rect box as an image response.
+        ImageResponse: An image of the entire virtual screen with the mouse position highlighted.
     """
-    mouse = pynput.mouse.Controller()
-    with mss.mss() as sct:
-        image = sct.grab(sct.monitors[-1]) # whole image
-        # convert captured image to ndarray as captured_image
-        captured_image = numpy.array(image)
-        image = PIL.Image.fromarray(numpy.array(captured_image)).convert('RGB')
-        # draw a 50px box near mouse
-        draw = PIL.ImageDraw.Draw(image)
-        x, y = mouse.position
-        draw.rectangle([x - 25, y - 25, x + 25, y + 25], outline="red", width=2)
-        # draw a text indicating mouse position
-        draw.text((x - 25, y - 25), f"({x}, {y})", fill="red")
-        bytearray_image = io.BytesIO()
-        image.save(bytearray_image, format='JPG')
-        return ImageResponse(bytearray_image.getvalue())
 
-def keyboardPress(key: list[str], duration: int = 0) -> TextResponse:
+    monitor_bbox = sct.monitors[0]
+
+    sct_img = sct.grab(monitor_bbox)
+
+    image = PIL.Image.frombytes(
+        "RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+
+    draw = PIL.ImageDraw.Draw(image)
+
+    x_abs, y_abs = mouse.position
+
+    x_rel = x_abs - monitor_bbox['left']
+    y_rel = y_abs - monitor_bbox['top']
+
+    box_size = 25
+    draw.rectangle(
+        [x_rel - box_size, y_rel - box_size, x_rel + box_size, y_rel + box_size],
+        outline="red",
+        width=3
+    )
+
+    text = f"({int(x_abs)}, {int(y_abs)})"
+
+    draw.text((x_rel + box_size + 5, y_rel), text, fill="red")
+
+    bytearray_image = io.BytesIO()
+    image.save(bytearray_image, format='JPEG')
+    pathlib.Path('screenshot.jpg').write_bytes(bytearray_image.getvalue())
+    return ImageResponse(bytearray_image.getvalue())
+
+
+def keyboardPress(keys: list[str], duration: int = 0) -> TextResponse:
     """
     Simulates a keyboard key press.
 
     Args:
-        key (list[str]): The key to press. E.g. `['a']`, `['shift', 'a']`. Available keys and combinations are the same as `pynput` library in Python 3.
+        key (list[str]): The keys to press. E.g. `['a']`, `['shift', 'a']`. Available keys and combinations are the same as `pynput` library in Python 3.
         duration (int, optional): The duration to hold the key press in milliseconds. Defaults to 0.
 
     Returns:
         TextResponse: A response indicating the key press action.
     """
-    if not duration:
-        for k in key:
-            pynput.keyboard.Controller().press(k)
-            pynput.keyboard.Controller().release(k)
-    else:
-        for k in key:
-            pynput.keyboard.Controller().press(k)
-        time.sleep(duration / 1000)
-        for k in key:
-            pynput.keyboard.Controller().release(k)
+    parsed_keys = [pynput.keyboard.Key[k]
+                   if k in pynput.keyboard.Key._member_names_ else k for k in keys]
 
-    return TextResponse(f"Key pressed: {key}")
+    for k in parsed_keys:
+        keyboard.press(k)
+
+    if duration > 0:
+        time.sleep(duration / 1000)
+
+    for k in reversed(parsed_keys):
+        keyboard.release(k)
+
+    return TextResponse(f"Key(s) pressed: {keys}")
+
 
 def keyboardWrite(text: str) -> TextResponse:
     """
@@ -114,8 +140,9 @@ def keyboardWrite(text: str) -> TextResponse:
     Returns:
         TextResponse: A response indicating the text typing action.
     """
-    pynput.keyboard.Controller().type(text)
+    keyboard.type(text)
     return TextResponse(f"Text written: {text}")
+
 
 def register():
     return {
